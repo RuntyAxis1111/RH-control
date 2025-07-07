@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import dayjs from 'dayjs';
+import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabaseClient';
 import DetailedDataTable from '../components/DetailedDataTable';
 import { CalendarDaysIcon } from '@heroicons/react/24/outline';
@@ -21,6 +22,7 @@ interface VacationRequest {
 
 const VacationDetails: React.FC = () => {
   const queryClient = useQueryClient();
+  const theme = useTheme();
 
   const { data = [], isLoading, error, refetch } = useQuery({
     queryKey: ['vacation_requests'],
@@ -78,8 +80,12 @@ const VacationDetails: React.FC = () => {
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-red-500/20 border border-red-500/30 text-red-300 px-6 py-4 rounded-xl">
+      <div className="max-w-7xl mx-auto px-4 py-8" style={{ backgroundColor: theme.background }}>
+        <div className="px-6 py-4 rounded-xl" style={{
+          backgroundColor: `${theme.danger}20`,
+          border: `1px solid ${theme.danger}30`,
+          color: theme.danger
+        }}>
           Error al cargar las solicitudes de vacaciones: {(error as Error).message}
         </div>
       </div>
@@ -87,7 +93,7 @@ const VacationDetails: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8" style={{ backgroundColor: theme.background }}>
       <motion.div
         className="mb-8"
         initial={{ opacity: 0, y: -20 }}
@@ -95,12 +101,12 @@ const VacationDetails: React.FC = () => {
         transition={{ duration: 0.5 }}
       >
         <div className="flex items-center space-x-3 mb-2">
-          <CalendarDaysIcon className="h-8 w-8 text-white" />
-          <h1 className="text-3xl font-extrabold text-white">
+          <CalendarDaysIcon className="h-8 w-8" style={{ color: theme.primaryAccent }} />
+          <h1 className="text-3xl font-extrabold" style={{ color: theme.textPrimary }}>
             Solicitudes de Vacaciones
           </h1>
         </div>
-        <p className="text-white/70">
+        <p style={{ color: theme.textSecondary }}>
           {data.length} solicitudes en total
         </p>
       </motion.div>

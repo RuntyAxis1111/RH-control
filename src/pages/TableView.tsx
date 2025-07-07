@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import dayjs from 'dayjs';
+import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabaseClient';
 import DataTable from '../components/DataTable';
 import { 
@@ -14,6 +15,7 @@ import {
 
 const TableView: React.FC = () => {
   const { name } = useParams<{ name: string }>();
+  const theme = useTheme();
 
   const tableConfig = {
     vacation_requests: {
@@ -91,8 +93,12 @@ const TableView: React.FC = () => {
 
   if (!config) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-red-500/20 border border-red-500/30 text-red-300 px-6 py-4 rounded-xl">
+      <div className="max-w-7xl mx-auto px-4 py-8" style={{ backgroundColor: theme.background }}>
+        <div className="px-6 py-4 rounded-xl" style={{
+          backgroundColor: `${theme.danger}20`,
+          border: `1px solid ${theme.danger}30`,
+          color: theme.danger
+        }}>
           Tabla no encontrada: {name}
         </div>
       </div>
@@ -102,7 +108,7 @@ const TableView: React.FC = () => {
   const Icon = config.icon;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8" style={{ backgroundColor: theme.background }}>
       <motion.div
         className="mb-8"
         initial={{ opacity: 0, y: -20 }}
@@ -110,18 +116,22 @@ const TableView: React.FC = () => {
         transition={{ duration: 0.5 }}
       >
         <div className="flex items-center space-x-3 mb-2">
-          <Icon className="h-8 w-8 text-white" />
-          <h1 className="text-3xl font-extrabold text-white">
+          <Icon className="h-8 w-8" style={{ color: theme.primaryAccent }} />
+          <h1 className="text-3xl font-extrabold" style={{ color: theme.textPrimary }}>
             {config.title}
           </h1>
         </div>
-        <p className="text-white/70">
+        <p style={{ color: theme.textSecondary }}>
           {data.length} registros en total
         </p>
       </motion.div>
 
       {error ? (
-        <div className="bg-red-500/20 border border-red-500/30 text-red-300 px-6 py-4 rounded-xl">
+        <div className="px-6 py-4 rounded-xl" style={{
+          backgroundColor: `${theme.danger}20`,
+          border: `1px solid ${theme.danger}30`,
+          color: theme.danger
+        }}>
           Error al cargar los datos: {(error as Error).message}
         </div>
       ) : (

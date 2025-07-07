@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import { useTheme } from '../contexts/ThemeContext';
 import { supabase, FeedItem, VacationRequest, TravelNotification, ItEquipmentRequest } from '../lib/supabaseClient';
 import FeedCard from '../components/FeedCard';
 import { BellIcon } from '@heroicons/react/24/outline';
@@ -8,6 +9,7 @@ import dayjs from 'dayjs';
 
 const Feed: React.FC = () => {
   const queryClient = useQueryClient();
+  const theme = useTheme();
 
   const { data: feed = [], isLoading, error, refetch } = useQuery({
     queryKey: ['feed'],
@@ -98,8 +100,12 @@ const Feed: React.FC = () => {
 
   if (error) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-red-500/20 border border-red-500/30 text-red-300 px-6 py-4 rounded-xl">
+      <div className="max-w-4xl mx-auto px-4 py-8" style={{ backgroundColor: theme.background }}>
+        <div className="px-6 py-4 rounded-xl" style={{
+          backgroundColor: `${theme.danger}20`,
+          border: `1px solid ${theme.danger}30`,
+          color: theme.danger
+        }}>
           Error al cargar el feed: {(error as Error).message}
         </div>
       </div>
@@ -107,7 +113,7 @@ const Feed: React.FC = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-4xl mx-auto px-4 py-8" style={{ backgroundColor: theme.background }}>
       <motion.div
         className="mb-8"
         initial={{ opacity: 0, y: -20 }}
@@ -115,12 +121,12 @@ const Feed: React.FC = () => {
         transition={{ duration: 0.5 }}
       >
         <div className="flex items-center space-x-3 mb-2">
-          <BellIcon className="h-8 w-8 text-white" />
-          <h1 className="text-3xl font-extrabold text-white">
+          <BellIcon className="h-8 w-8" style={{ color: theme.primaryAccent }} />
+          <h1 className="text-3xl font-extrabold" style={{ color: theme.textPrimary }}>
             Últimas actualizaciones
           </h1>
         </div>
-        <p className="text-white/70">
+        <p style={{ color: theme.textSecondary }}>
           Mantente al día con todas las novedades del equipo
         </p>
       </motion.div>
@@ -128,17 +134,20 @@ const Feed: React.FC = () => {
       {isLoading ? (
         <div className="space-y-4">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 animate-pulse shadow-inner shadow-white/5">
+            <div key={i} className="rounded-xl p-6 animate-pulse" style={{
+              backgroundColor: theme.surfaceAlt,
+              border: `1px solid ${theme.tableBorder}`
+            }}>
               <div className="flex items-center space-x-4 mb-4">
-                <div className="w-10 h-10 bg-white/20 rounded-lg"></div>
+                <div className="w-10 h-10 rounded-lg" style={{ backgroundColor: theme.tableBorder }}></div>
                 <div className="flex-1">
-                  <div className="h-4 bg-white/20 rounded w-1/3 mb-2"></div>
-                  <div className="h-3 bg-white/10 rounded w-1/2"></div>
+                  <div className="h-4 rounded w-1/3 mb-2" style={{ backgroundColor: theme.tableBorder }}></div>
+                  <div className="h-3 rounded w-1/2" style={{ backgroundColor: theme.surfaceAlt }}></div>
                 </div>
-                <div className="h-6 bg-white/20 rounded-full w-20"></div>
+                <div className="h-6 rounded-full w-20" style={{ backgroundColor: theme.tableBorder }}></div>
               </div>
-              <div className="h-4 bg-white/10 rounded w-full mb-2"></div>
-              <div className="h-4 bg-white/10 rounded w-2/3"></div>
+              <div className="h-4 rounded w-full mb-2" style={{ backgroundColor: theme.surfaceAlt }}></div>
+              <div className="h-4 rounded w-2/3" style={{ backgroundColor: theme.surfaceAlt }}></div>
             </div>
           ))}
         </div>
@@ -148,10 +157,13 @@ const Feed: React.FC = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-8 shadow-inner shadow-white/5">
-            <BellIcon className="h-12 w-12 text-white/60 mx-auto mb-4" />
-            <p className="text-white/80 text-lg">No hay actualizaciones recientes</p>
-            <p className="text-white/60 text-sm mt-2">Las nuevas notificaciones aparecerán aquí</p>
+          <div className="rounded-xl p-8" style={{
+            backgroundColor: theme.surfaceAlt,
+            border: `1px solid ${theme.tableBorder}`
+          }}>
+            <BellIcon className="h-12 w-12 mx-auto mb-4" style={{ color: theme.textSecondary }} />
+            <p className="text-lg" style={{ color: theme.textPrimary }}>No hay actualizaciones recientes</p>
+            <p className="text-sm mt-2" style={{ color: theme.textSecondary }}>Las nuevas notificaciones aparecerán aquí</p>
           </div>
         </motion.div>
       ) : (

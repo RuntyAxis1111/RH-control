@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabaseClient';
 
 const COLORS = {
@@ -23,6 +24,7 @@ interface ReviewChipProps {
 }
 
 const ReviewChip: React.FC<ReviewChipProps> = ({ table, id, status, onUpdate }) => {
+  const theme = useTheme();
   const currentStatus: ReviewStatus = status || 'unreviewed';
   
   const nextStatus: ReviewStatus = {
@@ -30,6 +32,17 @@ const ReviewChip: React.FC<ReviewChipProps> = ({ table, id, status, onUpdate }) 
     in_progress: 'done',
     done: 'unreviewed'
   }[currentStatus];
+
+  const getStatusColor = (status: ReviewStatus) => {
+    switch (status) {
+      case 'unreviewed':
+        return { backgroundColor: `${theme.danger}20`, color: theme.danger, borderColor: `${theme.danger}30` };
+      case 'in_progress':
+        return { backgroundColor: `${theme.warning}20`, color: theme.warning, borderColor: `${theme.warning}30` };
+      case 'done':
+        return { backgroundColor: `${theme.success}20`, color: theme.success, borderColor: `${theme.success}30` };
+    }
+  };
 
   const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -57,7 +70,11 @@ const ReviewChip: React.FC<ReviewChipProps> = ({ table, id, status, onUpdate }) 
   return (
     <button
       onClick={handleClick}
-      className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200 border hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/20 ${COLORS[currentStatus]}`}
+      className="px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200 border hover:scale-105 focus:outline-none focus:ring-2"
+      style={{
+        ...getStatusColor(currentStatus),
+        focusRingColor: `${theme.primaryAccent}20`
+      }}
       aria-label={`Cambiar estatus (actual: ${STATUS_TEXT[currentStatus]})`}
     >
       {STATUS_TEXT[currentStatus]}
