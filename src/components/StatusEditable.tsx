@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
+import { createPortal } from 'react-dom';
 import { useTheme } from '../contexts/ThemeContext';
 
 // Color mapping based on PDF reference
@@ -61,6 +62,20 @@ const STATUS_COLORS = {
   welcome_kit: {
     'Done': '#43A047',
     'N/A': '#9E9E9E',
+  },
+  contrato_renuncia: {
+    'signature process': '#F4B400',
+    'need to scan': '#0F9D58',
+    'signed & valid': '#00C851',
+    'Baja': '#FF007F',
+    'Stuck': '#D32F2F',
+    'Docusigned': '#9E9E9E',
+    'GlobalDesk': '#1565C0',
+    'working on it': '#F4B400',
+    'on Legal': '#9E9E9E',
+    'signed temporary': '#9C27B0',
+    'Contrato Consultor': '#4CAF50',
+    'N/A': '#9E9E9E',
   }
 };
 
@@ -82,7 +97,8 @@ const StatusEditable: React.FC<StatusEditableProps> = ({
   const theme = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const options = Object.keys(STATUS_COLORS[column] || {});
   const currentValue = value || 'N/A';
@@ -96,16 +112,81 @@ const StatusEditable: React.FC<StatusEditableProps> = ({
   
   const textColor = getTextColor(backgroundColor);
 
+  // Calculate dropdown position
+  const updateDropdownPosition = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      // Calculate optimal width based on number of options
+      const optimalWidth = Math.min(Math.max(options.length * 120, 300), 600);
+      
+      // Position horizontally (prefer left alignment, but adjust if it goes off screen)
+      let left = rect.left;
+      if (left + optimalWidth > viewportWidth - 20) {
+        left = viewportWidth - optimalWidth - 20;
+      }
+      if (left < 20) {
+        left = 20;
+      }
+      
+      // Position vertically (prefer below, but go above if not enough space)
+      let top = rect.bottom + 8;
+      const estimatedHeight = Math.ceil(options.length / 3) * 40 + 20; // Estimate height for 3 columns
+      
+      if (top + estimatedHeight > viewportHeight - 20) {
+        top = rect.top - estimatedHeight - 8;
+      }
+      
+      setDropdownPosition({
+        top,
+        left,
+        width: optimalWidth
+      });
+    }
+  };
+
+  // Handle click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
+        // Check if click is inside dropdown
+        const dropdownElement = document.getElementById(`dropdown-${recordId}-${column}`);
+        if (dropdownElement && dropdownElement.contains(event.target as Node)) {
+          return;
+        }
         setIsOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen, recordId, column]);
+
+  // Update position when opening
+  useEffect(() => {
+    if (isOpen) {
+      updateDropdownPosition();
+      // Update position on scroll/resize
+      const handleResize = () => updateDropdownPosition();
+      window.addEventListener('scroll', handleResize, true);
+      window.addEventListener('resize', handleResize);
+      return () => {
+        window.removeEventListener('scroll', handleResize, true);
+        window.removeEventListener('resize', handleResize);
+      };
+    }
+  }, [isOpen]);
+
+  const handleButtonClick = () => {
+    if (!isOpen) {
+      updateDropdownPosition();
+    }
+    setIsOpen(!isOpen);
+  };
 
   const handleOptionSelect = async (newValue: string) => {
     if (newValue === currentValue) {
@@ -124,10 +205,81 @@ const StatusEditable: React.FC<StatusEditableProps> = ({
     }
   };
 
+  const DropdownPortal = () => {
+    if (!isOpen) return null;
+
+    // Calculate grid columns based on number of options
+    const getGridCols = (optionCount: number) => {
+      if (optionCount <= 4) return 2;
+      if (optionCount <= 9) return 3;
+      if (optionCount <= 16) return 4;
+      return 5;
+    };
+
+    const gridCols = getGridCols(options.length);
+
+    return createPortal(
+      <AnimatePresence>
+        <motion.div
+          id={`dropdown-${recordId}-${column}`}
+          initial={{ opacity: 0, scale: 0.95, y: -5 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: -5 }}
+          transition={{ duration: 0.1, ease: 'easeOut' }}
+          className="fixed z-[99999] rounded-lg border shadow-lg"
+          style={{
+            backgroundColor: '#FFFFFF',
+            borderColor: '#E2E4E9',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+            width: dropdownPosition.width,
+            maxWidth: '90vw',
+          }}
+        >
+          <div className="p-3">
+            <div 
+              className="grid gap-2"
+              style={{ 
+                gridTemplateColumns: `repeat(${gridCols}, 1fr)`,
+              }}
+            >
+              {options.map((option) => {
+                const optionBgColor = STATUS_COLORS[column]?.[option] || '#9E9E9E';
+                const optionTextColor = getTextColor(optionBgColor);
+                const isSelected = option === currentValue;
+                
+                return (
+                  <button
+                    key={option}
+                    onClick={() => handleOptionSelect(option)}
+                    className="p-2 rounded-lg text-xs font-medium transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[32px] flex items-center justify-center text-center"
+                    style={{
+                      backgroundColor: optionBgColor,
+                      color: optionTextColor,
+                      border: isSelected ? '2px solid #0073EA' : '1px solid rgba(0,0,0,0.1)',
+                      transform: isSelected ? 'scale(1.05)' : 'scale(1)',
+                    }}
+                  >
+                    <span className="truncate leading-tight">
+                      {option}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>,
+      document.body
+    );
+  };
+
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={buttonRef}
+        onClick={handleButtonClick}
         disabled={isLoading}
         className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-1"
         style={{ 
@@ -149,61 +301,7 @@ const StatusEditable: React.FC<StatusEditableProps> = ({
         )}
       </button>
 
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.15 }}
-            className="absolute z-50 mt-1 min-w-[120px] rounded-lg shadow-lg border"
-            style={{
-              backgroundColor: theme.background,
-              borderColor: theme.tableBorder,
-              left: '50%',
-              transform: 'translateX(-50%)'
-            }}
-          >
-            <div className="py-1">
-              {options.map((option) => {
-                const optionBgColor = STATUS_COLORS[column]?.[option] || '#9E9E9E';
-                const optionTextColor = getTextColor(optionBgColor);
-                const isSelected = option === currentValue;
-                
-                return (
-                  <button
-                    key={option}
-                    onClick={() => handleOptionSelect(option)}
-                    className="w-full text-left px-3 py-2 text-xs transition-colors first:rounded-t-lg last:rounded-b-lg"
-                    style={{
-                      backgroundColor: isSelected ? theme.surfaceAlt : 'transparent',
-                      color: theme.textPrimary
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.backgroundColor = theme.surfaceAlt;
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                      }
-                    }}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <span 
-                        className="inline-block w-3 h-3 rounded-full"
-                        style={{ backgroundColor: optionBgColor }}
-                      />
-                      <span>{option}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <DropdownPortal />
     </div>
   );
 };

@@ -5,13 +5,16 @@ import { useTheme } from '../contexts/ThemeContext';
 import { 
   UserPlusIcon, 
   MagnifyingGlassIcon,
-  InboxIcon
+  InboxIcon,
+  PlusIcon
 } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabaseClient';
 import StatusEditable from '../components/StatusEditable';
+import DatePicker from '../components/DatePicker';
+import NewCandidateModal from '../components/NewCandidateModal';
+import dayjs from 'dayjs';
 
 interface HiringRecord {
-  id: string;
   full_name: string;
   team: string;
   position: string;
@@ -25,6 +28,9 @@ interface HiringRecord {
   psychometrics_status: string;
   welcome_email_status: string;
   welcome_kit: string;
+  start_date: string;
+  end_date: string;
+  contrato_renuncia: string;
 }
 
 const TABS = {
@@ -39,6 +45,7 @@ const HiringBoard: React.FC = () => {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState('New employees – this month');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showNewCandidateModal, setShowNewCandidateModal] = useState(false);
 
   const { data: records = [], isLoading, error, refetch } = useQuery({
     queryKey: ['hiring', activeTab],
@@ -58,12 +65,21 @@ const HiringBoard: React.FC = () => {
 
   // Mutation for updating records
   const updateMutation = useMutation({
-    mutationFn: async ({ id, column, value }: { id: string; column: string; value: string }) => {
+    mutationFn: async ({ full_name, column, value }: { full_name: string; column: string; value: string }) => {
       const tableName = TABS[activeTab as keyof typeof TABS];
+      
+      let updateData: any = { [column]: value };
+      
+      // If updating start_date, also calculate and update end_date
+      if (column === 'start_date' && value) {
+        const endDate = dayjs(value).add(90, 'days').format('YYYY-MM-DD');
+        updateData.end_date = endDate;
+      }
+      
       const { error } = await supabase
         .from(tableName)
-        .update({ [column]: value })
-        .eq('id', id);
+        .update(updateData)
+        .eq('full_name', full_name);
       
       if (error) throw error;
     },
@@ -102,7 +118,11 @@ const HiringBoard: React.FC = () => {
   );
 
   const handleStatusUpdate = async (id: string, column: string, value: string) => {
-    return updateMutation.mutateAsync({ id, column, value });
+    return updateMutation.mutateAsync({ full_name: id, column, value });
+  };
+
+  const handleDateUpdate = async (full_name: string, date: string) => {
+    return updateMutation.mutateAsync({ full_name, column: 'start_date', value: date });
   };
 
   if (error) {
@@ -135,24 +155,37 @@ const HiringBoard: React.FC = () => {
             <UserPlusIcon className="h-8 w-8" style={{ color: theme.primaryAccent }} />
             <div>
               <h1 className="text-3xl font-bold" style={{ color: theme.textPrimary }}>Hiring Board</h1>
-              <p style={{ color: theme.textSecondary }}>{filteredRecords.length} registros</p>
             </div>
           </div>
           
-          <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5" style={{ color: theme.textSecondary }} />
-            <input
-              type="text"
-              placeholder="Buscar nombre o email…"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2"
-              style={{
-                backgroundColor: theme.background,
-                border: `1px solid ${theme.tableBorder}`,
-                color: theme.textPrimary
-              }}
-            />
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              <p style={{ color: theme.textSecondary }}>{filteredRecords.length} registros</p>
+              <button
+                onClick={() => setShowNewCandidateModal(true)}
+                className="flex items-center space-x-2 px-4 py-2 rounded-lg text-white font-medium transition-colors hover:opacity-90"
+                style={{ backgroundColor: theme.primaryAccent }}
+              >
+                <PlusIcon className="h-4 w-4" />
+                <span>Nuevo empleado</span>
+              </button>
+            </div>
+            
+            <div className="relative">
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5" style={{ color: theme.textSecondary }} />
+              <input
+                type="text"
+                placeholder="Buscar nombre o email…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2"
+                style={{
+                  backgroundColor: theme.background,
+                  border: `1px solid ${theme.tableBorder}`,
+                  color: theme.textPrimary
+                }}
+              />
+            </div>
           </div>
         </div>
 
@@ -208,8 +241,8 @@ const HiringBoard: React.FC = () => {
         >
           {filteredRecords.map((record, index) => (
             <motion.div
-              key={record.id}
-              className="rounded-xl p-6 shadow-sm border transition-all duration-200"
+              key={record.full_name}
+              className="rounded-xl px-6 py-5 shadow-sm border transition-all duration-200"
               style={{
                 backgroundColor: theme.background,
                 borderColor: theme.tableBorder
@@ -222,7 +255,7 @@ const HiringBoard: React.FC = () => {
                 scale: 1.005
               }}
             >
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start text-sm">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start text-sm mb-4">
                 {/* Name and basic info */}
                 <div className="lg:col-span-3">
                   <div className="font-semibold text-base mb-1" style={{ color: theme.textPrimary }}>
@@ -247,13 +280,24 @@ const HiringBoard: React.FC = () => {
                 </div>
                 
                 {/* Status chips */}
-                <div className="lg:col-span-9 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div className="lg:col-span-9 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 pb-1">
                   <div>
                     <div className="text-xs font-medium mb-2" style={{ color: theme.textSecondary }}>CONTRATO</div>
                     <StatusEditable
                       column="contract_status"
                       value={record.contract_status}
-                      recordId={record.id}
+                      recordId={record.full_name}
+                      tableName={TABS[activeTab as keyof typeof TABS]}
+                      onUpdate={handleStatusUpdate}
+                    />
+                  </div>
+                  
+                  <div>
+                    <div className="text-xs font-medium mb-2" style={{ color: theme.textSecondary }}>CONTRATO / RENUNCIA</div>
+                    <StatusEditable
+                      column="contrato_renuncia"
+                      value={record.contrato_renuncia}
+                      recordId={record.full_name}
                       tableName={TABS[activeTab as keyof typeof TABS]}
                       onUpdate={handleStatusUpdate}
                     />
@@ -264,7 +308,7 @@ const HiringBoard: React.FC = () => {
                     <StatusEditable
                       column="offer_letter_status"
                       value={record.offer_letter_status}
-                      recordId={record.id}
+                      recordId={record.full_name}
                       tableName={TABS[activeTab as keyof typeof TABS]}
                       onUpdate={handleStatusUpdate}
                     />
@@ -275,7 +319,7 @@ const HiringBoard: React.FC = () => {
                     <StatusEditable
                       column="computer_status"
                       value={record.computer_status}
-                      recordId={record.id}
+                      recordId={record.full_name}
                       tableName={TABS[activeTab as keyof typeof TABS]}
                       onUpdate={handleStatusUpdate}
                     />
@@ -286,7 +330,7 @@ const HiringBoard: React.FC = () => {
                     <StatusEditable
                       column="bgc_status"
                       value={record.bgc_status}
-                      recordId={record.id}
+                      recordId={record.full_name}
                       tableName={TABS[activeTab as keyof typeof TABS]}
                       onUpdate={handleStatusUpdate}
                     />
@@ -297,7 +341,7 @@ const HiringBoard: React.FC = () => {
                     <StatusEditable
                       column="psychometrics_status"
                       value={record.psychometrics_status}
-                      recordId={record.id}
+                      recordId={record.full_name}
                       tableName={TABS[activeTab as keyof typeof TABS]}
                       onUpdate={handleStatusUpdate}
                     />
@@ -308,17 +352,49 @@ const HiringBoard: React.FC = () => {
                     <StatusEditable
                       column="welcome_email_status"
                       value={record.welcome_email_status}
-                      recordId={record.id}
+                      recordId={record.full_name}
                       tableName={TABS[activeTab as keyof typeof TABS]}
                       onUpdate={handleStatusUpdate}
                     />
                   </div>
                 </div>
               </div>
+              
+              {/* Contract dates section */}
+              <div className="border-t pt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm" style={{ borderColor: theme.tableBorder }}>
+                <div className="flex items-center space-x-2">
+                  <span style={{ color: theme.textSecondary }}>📅 Inicio contrato:</span>
+                  <DatePicker
+                    value={record.start_date}
+                    onChange={(date) => handleDateUpdate(record.full_name, date)}
+                  />
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <span style={{ color: theme.textSecondary }}>📅 Fin contrato:</span>
+                  <span style={{ color: theme.textPrimary }}>
+                    {record.end_date ? dayjs(record.end_date).format('DD/MM/YYYY') : 
+                     record.start_date ? dayjs(record.start_date).add(90, 'days').format('DD/MM/YYYY') : 
+                     'No definido'}
+                  </span>
+                  <span className="text-xs" style={{ color: theme.textSecondary }}>(3 meses después)</span>
+                </div>
+              </div>
             </motion.div>
           ))}
         </motion.div>
       )}
+      
+      <NewCandidateModal
+        isOpen={showNewCandidateModal}
+        onClose={() => setShowNewCandidateModal(false)}
+        tableName={TABS[activeTab as keyof typeof TABS]}
+        onSuccess={() => {
+          refetch();
+          // Show toast notification
+          console.log('Empleado creado exitosamente');
+        }}
+      />
     </div>
   );
 };

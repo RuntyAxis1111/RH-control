@@ -13,6 +13,7 @@ interface NewCandidateModalProps {
 }
 
 const HIRING_ENTITIES = [
+  '',
   'Aja Podcast',
   'HBL', 
   'HBL Prestacion Servicios',
@@ -23,13 +24,22 @@ const HIRING_ENTITIES = [
 ];
 
 const LOCATIONS = [
+  '',
   'Prado Norte',
   'Alvaro Obregón', 
   'US',
   'COL'
 ];
 
+const OWNERS_OPTIONS = [
+  'Carla L.',
+  'Karla S.',
+  'Laura B.',
+  'Johan'
+];
+
 const CONTRACT_STATUS_OPTIONS = [
+  '',
   'Working on it',
   'Signing process',
   'Signed & valid',
@@ -45,8 +55,9 @@ const CONTRACT_STATUS_OPTIONS = [
   'Done'
 ];
 
-const STATUS_4COL_OPTIONS = ['Done', 'Working on it', 'Stuck', 'N/A'];
+const STATUS_4COL_OPTIONS = ['', 'Done', 'Working on it', 'Stuck', 'N/A'];
 const COMPUTER_STATUS_OPTIONS = [
+  '',
   'Requested to IT',
   'Received + responsibility letter', 
   'Received',
@@ -56,7 +67,31 @@ const COMPUTER_STATUS_OPTIONS = [
   'Stuck'
 ];
 
-const WELCOME_KIT_OPTIONS = ['Done', 'N/A'];
+const WELCOME_KIT_OPTIONS = ['', 'Done', 'N/A'];
+
+const EMAIL_ACCOUNT_OPTIONS = ['', 'Done', 'Requested', 'N/A'];
+const OFFICE_ACCESS_OPTIONS = ['', 'Registered PRADO', 'ROMA', 'N/A'];
+const CLARA_OPTIONS = ['', 'Requested', 'Done', 'N/A'];
+const COME_BIEN_OPTIONS = ['', 'Done', 'Requested', 'N/A'];
+const EMERGENCY_CONTACTS_OPTIONS = ['', 'Done', 'Requested', 'N/A'];
+const SGMM_OPTIONS = ['', 'Requested', 'Done', 'N/A'];
+const LIFE_INSURANCE_OPTIONS = ['', 'Requested', 'Done', 'N/A'];
+const SEGURO_VIAJE_OPTIONS = ['', 'SOLICITAR', 'N/A'];
+
+const CONTRATO_RENUNCIA_OPTIONS = [
+  '',
+  'signature process',
+  'need to scan',
+  'signed & valid',
+  'Baja',
+  'Stuck',
+  'Docusigned',
+  'GlobalDesk',
+  'working on it',
+  'on Legal',
+  'signed temporary',
+  'Contrato Consultor'
+];
 
 const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
   isOpen,
@@ -81,8 +116,20 @@ const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
     psychometrics_status: 'N/A',
     welcome_email_status: 'N/A',
     welcome_kit: 'N/A',
-    owners: [] as string[],
-    contract_file_url: ''
+    email_account_status: 'N/A',
+    office_access: 'N/A',
+    clara_status: 'N/A',
+    come_bien_status: 'N/A',
+    emergency_contacts_status: 'N/A',
+    sgmm_status: 'N/A',
+    life_insurance_status: 'N/A',
+    seguro_viaje_status: 'N/A',
+    inicio_seguro_viaje: '',
+    due_seguro_viaje_status: '',
+    owners: '',
+    contract_file_url: '',
+    end_date: '',
+    contrato_renuncia: ''
   });
 
   const handleInputChange = (field: string, value: any) => {
@@ -91,7 +138,7 @@ const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
       [field]: value,
       // Auto-calculate expiry_date when start_date changes
       ...(field === 'start_date' && value ? {
-        expiry_date: dayjs(value).add(90, 'days').format('YYYY-MM-DD')
+        end_date: dayjs(value).add(90, 'days').format('YYYY-MM-DD')
       } : {})
     }));
   };
@@ -104,7 +151,7 @@ const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
     try {
       const submitData = {
         ...formData,
-        expiry_date: formData.start_date ? 
+        end_date: formData.start_date ? 
           dayjs(formData.start_date).add(90, 'days').format('YYYY-MM-DD') : null
       };
 
@@ -131,8 +178,20 @@ const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
         psychometrics_status: 'N/A',
         welcome_email_status: 'N/A',
         welcome_kit: 'N/A',
-        owners: [],
-        contract_file_url: ''
+        email_account_status: 'N/A',
+        office_access: 'N/A',
+        clara_status: 'N/A',
+        come_bien_status: 'N/A',
+        emergency_contacts_status: 'N/A',
+        sgmm_status: 'N/A',
+        life_insurance_status: 'N/A',
+        seguro_viaje_status: 'N/A',
+        inicio_seguro_viaje: '',
+        due_seguro_viaje_status: '',
+        owners: '',
+        contract_file_url: '',
+        end_date: '',
+        contrato_renuncia: ''
       });
     } catch (error) {
       console.error('Error creating record:', error);
@@ -180,7 +239,7 @@ const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Full Name */}
               <div>
                 <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
@@ -221,6 +280,28 @@ const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
                 />
               </div>
 
+              {/* Hiring Entity */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
+                  Hiring Entity
+                </label>
+                <select
+                  value={formData.hiring_entity}
+                  onChange={(e) => handleInputChange('hiring_entity', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                  style={{ 
+                    backgroundColor: theme.background,
+                    borderColor: theme.tableBorder,
+                    color: theme.textPrimary
+                  }}
+                >
+                  <option value="">Seleccionar...</option>
+                  {HIRING_ENTITIES.slice(1).map(entity => (
+                    <option key={entity} value={entity}>{entity}</option>
+                  ))}
+                </select>
+              </div>
+
               {/* Team */}
               <div>
                 <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
@@ -259,14 +340,14 @@ const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
                 />
               </div>
 
-              {/* Hiring Entity */}
+              {/* Contract Status */}
               <div>
                 <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
-                  Hiring Entity
+                  Estado del Contrato
                 </label>
                 <select
-                  value={formData.hiring_entity}
-                  onChange={(e) => handleInputChange('hiring_entity', e.target.value)}
+                  value={formData.contract_status}
+                  onChange={(e) => handleInputChange('contract_status', e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
                   style={{ 
                     backgroundColor: theme.background,
@@ -275,10 +356,70 @@ const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
                   }}
                 >
                   <option value="">Seleccionar...</option>
-                  {HIRING_ENTITIES.map(entity => (
-                    <option key={entity} value={entity}>{entity}</option>
+                  {CONTRACT_STATUS_OPTIONS.slice(1).map(status => (
+                    <option key={status} value={status}>{status}</option>
                   ))}
                 </select>
+              </div>
+
+              {/* Contrato / Renuncia */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
+                  Contrato / Renuncia
+                </label>
+                <select
+                  value={formData.contrato_renuncia}
+                  onChange={(e) => handleInputChange('contrato_renuncia', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                  style={{ 
+                    backgroundColor: theme.background,
+                    borderColor: theme.tableBorder,
+                    color: theme.textPrimary
+                  }}
+                >
+                  <option value="">Seleccionar...</option>
+                  {CONTRATO_RENUNCIA_OPTIONS.slice(1).map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Contract File URL */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
+                  Contract File URL
+                </label>
+                <input
+                  type="url"
+                  value={formData.contract_file_url}
+                  onChange={(e) => handleInputChange('contract_file_url', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                  style={{ 
+                    backgroundColor: theme.background,
+                    borderColor: theme.tableBorder,
+                    color: theme.textPrimary
+                  }}
+                  placeholder="https://..."
+                />
+              </div>
+
+              {/* Owners */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
+                  Owners
+                </label>
+                <input
+                  type="text"
+                  value={formData.owners}
+                  onChange={(e) => handleInputChange('owners', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                  style={{ 
+                    backgroundColor: theme.background,
+                    borderColor: theme.tableBorder,
+                    color: theme.textPrimary
+                  }}
+                  placeholder="Carla L., Karla S., Laura B., Johan"
+                />
               </div>
 
               {/* Location */}
@@ -297,7 +438,7 @@ const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
                   }}
                 >
                   <option value="">Seleccionar...</option>
-                  {LOCATIONS.map(location => (
+                  {LOCATIONS.slice(1).map(location => (
                     <option key={location} value={location}>{location}</option>
                   ))}
                 </select>
@@ -322,14 +463,14 @@ const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
                 />
               </div>
 
-              {/* Contract Status */}
+              {/* Offer Letter Status */}
               <div>
                 <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
-                  Estado del Contrato
+                  Offer Letter Status
                 </label>
                 <select
-                  value={formData.contract_status}
-                  onChange={(e) => handleInputChange('contract_status', e.target.value)}
+                  value={formData.offer_letter_status}
+                  onChange={(e) => handleInputChange('offer_letter_status', e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
                   style={{ 
                     backgroundColor: theme.background,
@@ -337,10 +478,333 @@ const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
                     color: theme.textPrimary
                   }}
                 >
-                  {CONTRACT_STATUS_OPTIONS.map(status => (
+                  <option value="">Seleccionar...</option>
+                  {STATUS_4COL_OPTIONS.slice(1).map(status => (
                     <option key={status} value={status}>{status}</option>
                   ))}
                 </select>
+              </div>
+
+              {/* Computer Status */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
+                  Computer Status
+                </label>
+                <select
+                  value={formData.computer_status}
+                  onChange={(e) => handleInputChange('computer_status', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                  style={{ 
+                    backgroundColor: theme.background,
+                    borderColor: theme.tableBorder,
+                    color: theme.textPrimary
+                  }}
+                >
+                  <option value="">Seleccionar...</option>
+                  {COMPUTER_STATUS_OPTIONS.slice(1).map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* BGC Status */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
+                  BGC Status
+                </label>
+                <select
+                  value={formData.bgc_status}
+                  onChange={(e) => handleInputChange('bgc_status', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                  style={{ 
+                    backgroundColor: theme.background,
+                    borderColor: theme.tableBorder,
+                    color: theme.textPrimary
+                  }}
+                >
+                  <option value="">Seleccionar...</option>
+                  {STATUS_4COL_OPTIONS.slice(1).map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Psychometrics Status */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
+                  Psychometrics Status
+                </label>
+                <select
+                  value={formData.psychometrics_status}
+                  onChange={(e) => handleInputChange('psychometrics_status', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                  style={{ 
+                    backgroundColor: theme.background,
+                    borderColor: theme.tableBorder,
+                    color: theme.textPrimary
+                  }}
+                >
+                  <option value="">Seleccionar...</option>
+                  {STATUS_4COL_OPTIONS.slice(1).map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Welcome Email Status */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
+                  Welcome Email Status
+                </label>
+                <select
+                  value={formData.welcome_email_status}
+                  onChange={(e) => handleInputChange('welcome_email_status', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                  style={{ 
+                    backgroundColor: theme.background,
+                    borderColor: theme.tableBorder,
+                    color: theme.textPrimary
+                  }}
+                >
+                  <option value="">Seleccionar...</option>
+                  {STATUS_4COL_OPTIONS.slice(1).map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Welcome Kit Status */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
+                  Welcome Kit Status
+                </label>
+                <select
+                  value={formData.welcome_kit}
+                  onChange={(e) => handleInputChange('welcome_kit', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                  style={{ 
+                    backgroundColor: theme.background,
+                    borderColor: theme.tableBorder,
+                    color: theme.textPrimary
+                  }}
+                >
+                  <option value="">Seleccionar...</option>
+                  {WELCOME_KIT_OPTIONS.slice(1).map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Email Account Status */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
+                  Email Account Status
+                </label>
+                <select
+                  value={formData.email_account_status}
+                  onChange={(e) => handleInputChange('email_account_status', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                  style={{ 
+                    backgroundColor: theme.background,
+                    borderColor: theme.tableBorder,
+                    color: theme.textPrimary
+                  }}
+                >
+                  <option value="">Seleccionar...</option>
+                  {EMAIL_ACCOUNT_OPTIONS.slice(1).map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Office Access */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
+                  Office Access
+                </label>
+                <select
+                  value={formData.office_access}
+                  onChange={(e) => handleInputChange('office_access', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                  style={{ 
+                    backgroundColor: theme.background,
+                    borderColor: theme.tableBorder,
+                    color: theme.textPrimary
+                  }}
+                >
+                  <option value="">Seleccionar...</option>
+                  {OFFICE_ACCESS_OPTIONS.slice(1).map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Clara Status */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
+                  Clara Status
+                </label>
+                <select
+                  value={formData.clara_status}
+                  onChange={(e) => handleInputChange('clara_status', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                  style={{ 
+                    backgroundColor: theme.background,
+                    borderColor: theme.tableBorder,
+                    color: theme.textPrimary
+                  }}
+                >
+                  <option value="">Seleccionar...</option>
+                  {CLARA_OPTIONS.slice(1).map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Come-bien Status */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
+                  Come-bien Status
+                </label>
+                <select
+                  value={formData.come_bien_status}
+                  onChange={(e) => handleInputChange('come_bien_status', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                  style={{ 
+                    backgroundColor: theme.background,
+                    borderColor: theme.tableBorder,
+                    color: theme.textPrimary
+                  }}
+                >
+                  <option value="">Seleccionar...</option>
+                  {COME_BIEN_OPTIONS.slice(1).map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Emergency Contacts Status */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
+                  Emergency Contacts Status
+                </label>
+                <select
+                  value={formData.emergency_contacts_status}
+                  onChange={(e) => handleInputChange('emergency_contacts_status', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                  style={{ 
+                    backgroundColor: theme.background,
+                    borderColor: theme.tableBorder,
+                    color: theme.textPrimary
+                  }}
+                >
+                  <option value="">Seleccionar...</option>
+                  {EMERGENCY_CONTACTS_OPTIONS.slice(1).map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* SGMM Status */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
+                  SGMM Status
+                </label>
+                <select
+                  value={formData.sgmm_status}
+                  onChange={(e) => handleInputChange('sgmm_status', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                  style={{ 
+                    backgroundColor: theme.background,
+                    borderColor: theme.tableBorder,
+                    color: theme.textPrimary
+                  }}
+                >
+                  <option value="">Seleccionar...</option>
+                  {SGMM_OPTIONS.slice(1).map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Life Insurance Status */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
+                  Life Insurance Status
+                </label>
+                <select
+                  value={formData.life_insurance_status}
+                  onChange={(e) => handleInputChange('life_insurance_status', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                  style={{ 
+                    backgroundColor: theme.background,
+                    borderColor: theme.tableBorder,
+                    color: theme.textPrimary
+                  }}
+                >
+                  <option value="">Seleccionar...</option>
+                  {LIFE_INSURANCE_OPTIONS.slice(1).map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Seguro Viaje Status */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
+                  Seguro Viaje Status
+                </label>
+                <select
+                  value={formData.seguro_viaje_status}
+                  onChange={(e) => handleInputChange('seguro_viaje_status', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                  style={{ 
+                    backgroundColor: theme.background,
+                    borderColor: theme.tableBorder,
+                    color: theme.textPrimary
+                  }}
+                >
+                  <option value="">Seleccionar...</option>
+                  {SEGURO_VIAJE_OPTIONS.slice(1).map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Inicio Seguro Viaje */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
+                  Inicio Seguro Viaje
+                </label>
+                <input
+                  type="date"
+                  value={formData.inicio_seguro_viaje}
+                  onChange={(e) => handleInputChange('inicio_seguro_viaje', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                  style={{ 
+                    backgroundColor: theme.background,
+                    borderColor: theme.tableBorder,
+                    color: theme.textPrimary
+                  }}
+                />
+              </div>
+
+              {/* Due Seguro Viaje */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
+                  Due Seguro Viaje
+                </label>
+                <input
+                  type="date"
+                  value={formData.due_seguro_viaje_status}
+                  onChange={(e) => handleInputChange('due_seguro_viaje_status', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                  style={{ 
+                    backgroundColor: theme.background,
+                    borderColor: theme.tableBorder,
+                    color: theme.textPrimary
+                  }}
+                />
               </div>
             </div>
 
