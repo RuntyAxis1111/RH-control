@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import { CalendarIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useTheme } from '../contexts/ThemeContext';
 import dayjs from 'dayjs';
@@ -75,15 +76,21 @@ const DatePicker: React.FC<DatePickerProps> = ({
   }
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative z-10" ref={containerRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={isLoading}
-        className="flex items-center space-x-2 px-3 py-1.5 rounded-lg border text-sm transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="flex items-center space-x-2 px-3 py-1.5 rounded-lg border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 relative"
         style={{
           backgroundColor: theme.background,
           borderColor: theme.tableBorder,
           color: theme.textPrimary
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = theme.surfaceAlt;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = theme.background;
         }}
       >
         <CalendarIcon className="h-4 w-4" style={{ color: theme.textSecondary }} />
@@ -92,64 +99,83 @@ const DatePicker: React.FC<DatePickerProps> = ({
 
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.15 }}
-            className="fixed z-[1200] mt-1 p-4 rounded-lg border"
-            style={{
-              backgroundColor: theme.background,
-              borderColor: theme.tableBorder,
-              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
-              left: containerRef.current?.getBoundingClientRect().left || 0,
-              top: (containerRef.current?.getBoundingClientRect().bottom || 0) + 4,
-              minWidth: '280px'
-            }}
-          >
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium mb-1" style={{ color: theme.textSecondary }}>
-                  Seleccionar fecha
-                </label>
-                <input
-                  ref={inputRef}
-                  type="date"
-                  value={tempValue}
-                  onChange={(e) => setTempValue(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  style={{
-                    backgroundColor: theme.background,
-                    borderColor: theme.tableBorder,
-                    color: theme.textPrimary
-                  }}
-                  autoFocus
-                />
-              </div>
-              
-              <div className="flex justify-end space-x-2">
-                <button
-                  onClick={handleCancel}
-                  disabled={isLoading}
-                  className="px-3 py-1.5 text-xs rounded-lg border transition-colors hover:bg-gray-50"
-                  style={{
-                    borderColor: theme.tableBorder,
-                    color: theme.textSecondary
-                  }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={isLoading || !tempValue}
-                  className="px-3 py-1.5 text-xs rounded-lg text-white transition-colors disabled:opacity-50"
-                  style={{ backgroundColor: theme.primaryAccent }}
-                >
-                  {isLoading ? 'Guardando...' : 'Guardar'}
-                </button>
-              </div>
-            </div>
-          </motion.div>
+          <>
+            {createPortal(
+              <motion.div
+                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="fixed z-[99999] p-4 rounded-lg border shadow-lg"
+                style={{
+                  backgroundColor: theme.background,
+                  borderColor: theme.tableBorder,
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                  left: Math.min(
+                    containerRef.current?.getBoundingClientRect().left || 0,
+                    window.innerWidth - 300
+                  ),
+                  top: Math.min(
+                    (containerRef.current?.getBoundingClientRect().bottom || 0) + 8,
+                    window.innerHeight - 200
+                  ),
+                  minWidth: '280px',
+                  maxWidth: '300px'
+                }}
+              >
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium mb-1" style={{ color: theme.textSecondary }}>
+                      Seleccionar fecha
+                    </label>
+                    <input
+                      ref={inputRef}
+                      type="date"
+                      value={tempValue}
+                      onChange={(e) => setTempValue(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      style={{
+                        backgroundColor: theme.background,
+                        borderColor: theme.tableBorder,
+                        color: theme.textPrimary
+                      }}
+                      autoFocus
+                    />
+                  </div>
+                  
+                  <div className="flex justify-end space-x-2">
+                    <button
+                      onClick={handleCancel}
+                      disabled={isLoading}
+                      className="px-3 py-1.5 text-xs rounded-lg border transition-colors"
+                      style={{
+                        borderColor: theme.tableBorder,
+                        color: theme.textSecondary,
+                        backgroundColor: theme.background
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = theme.surfaceAlt;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = theme.background;
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      disabled={isLoading || !tempValue}
+                      className="px-3 py-1.5 text-xs rounded-lg text-white transition-colors disabled:opacity-50"
+                      style={{ backgroundColor: theme.primaryAccent }}
+                    >
+                      {isLoading ? 'Guardando...' : 'Guardar'}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>,
+              document.body
+            )}
+          </>
         )}
       </AnimatePresence>
     </div>

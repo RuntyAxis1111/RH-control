@@ -276,16 +276,24 @@ const StatusEditable: React.FC<StatusEditableProps> = ({
   };
 
   return (
-    <div className="relative">
+    <div className="relative z-20">
       <button
         ref={buttonRef}
         onClick={handleButtonClick}
         disabled={isLoading}
-        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-1"
+        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 relative"
         style={{ 
           backgroundColor,
           color: textColor,
           focusRingColor: backgroundColor
+        }}
+        onMouseEnter={(e) => {
+          if (!isLoading) {
+            e.currentTarget.style.opacity = '0.85';
+          }
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.opacity = '1';
         }}
       >
         {isLoading ? (

@@ -250,14 +250,21 @@ const HiringBoard: React.FC = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, delay: index * 0.05 }}
-              whileHover={{ 
-                backgroundColor: theme.surfaceAlt,
-                scale: 1.005
+              style={{
+                backgroundColor: theme.background,
+                borderColor: theme.tableBorder,
+                minHeight: '140px' // Altura mínima fija para evitar saltos
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme.surfaceAlt;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = theme.background;
               }}
             >
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start text-sm mb-4">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start text-sm mb-4 relative">
                 {/* Name and basic info */}
-                <div className="lg:col-span-3">
+                <div className="lg:col-span-3 relative">
                   <div className="font-semibold text-base mb-1" style={{ color: theme.textPrimary }}>
                     {record.full_name}
                   </div>
@@ -280,8 +287,8 @@ const HiringBoard: React.FC = () => {
                 </div>
                 
                 {/* Status chips */}
-                <div className="lg:col-span-9 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 pb-1">
-                  <div>
+                <div className="lg:col-span-9 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 pb-1 relative">
+                  <div className="relative">
                     <div className="text-xs font-medium mb-2" style={{ color: theme.textSecondary }}>CONTRATO</div>
                     <StatusEditable
                       column="contract_status"
@@ -292,7 +299,7 @@ const HiringBoard: React.FC = () => {
                     />
                   </div>
                   
-                  <div>
+                  <div className="relative">
                     <div className="text-xs font-medium mb-2" style={{ color: theme.textSecondary }}>CONTRATO / RENUNCIA</div>
                     <StatusEditable
                       column="contrato_renuncia"
@@ -303,7 +310,7 @@ const HiringBoard: React.FC = () => {
                     />
                   </div>
                   
-                  <div>
+                  <div className="relative">
                     <div className="text-xs font-medium mb-2" style={{ color: theme.textSecondary }}>OFFER LETTER</div>
                     <StatusEditable
                       column="offer_letter_status"
@@ -314,7 +321,7 @@ const HiringBoard: React.FC = () => {
                     />
                   </div>
                   
-                  <div>
+                  <div className="relative">
                     <div className="text-xs font-medium mb-2" style={{ color: theme.textSecondary }}>COMPUTER</div>
                     <StatusEditable
                       column="computer_status"
@@ -325,7 +332,7 @@ const HiringBoard: React.FC = () => {
                     />
                   </div>
                   
-                  <div>
+                  <div className="relative">
                     <div className="text-xs font-medium mb-2" style={{ color: theme.textSecondary }}>BGC</div>
                     <StatusEditable
                       column="bgc_status"
@@ -336,7 +343,7 @@ const HiringBoard: React.FC = () => {
                     />
                   </div>
                   
-                  <div>
+                  <div className="relative">
                     <div className="text-xs font-medium mb-2" style={{ color: theme.textSecondary }}>PSICOMÉTRICOS</div>
                     <StatusEditable
                       column="psychometrics_status"
@@ -347,7 +354,7 @@ const HiringBoard: React.FC = () => {
                     />
                   </div>
                   
-                  <div>
+                  <div className="relative">
                     <div className="text-xs font-medium mb-2" style={{ color: theme.textSecondary }}>WELCOME EMAIL</div>
                     <StatusEditable
                       column="welcome_email_status"
@@ -361,8 +368,8 @@ const HiringBoard: React.FC = () => {
               </div>
               
               {/* Contract dates section */}
-              <div className="border-t pt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm" style={{ borderColor: theme.tableBorder }}>
-                <div className="flex items-center space-x-2">
+              <div className="border-t pt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm relative" style={{ borderColor: theme.tableBorder }}>
+                <div className="flex items-center space-x-2 relative">
                   <span style={{ color: theme.textSecondary }}>📅 Inicio contrato:</span>
                   <DatePicker
                     value={record.start_date}
@@ -370,7 +377,7 @@ const HiringBoard: React.FC = () => {
                   />
                 </div>
                 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 relative">
                   <span style={{ color: theme.textSecondary }}>📅 Fin contrato:</span>
                   <span style={{ color: theme.textPrimary }}>
                     {record.end_date ? dayjs(record.end_date).format('DD/MM/YYYY') : 
