@@ -6,12 +6,14 @@ import {
   UserPlusIcon, 
   MagnifyingGlassIcon,
   InboxIcon,
-  PlusIcon
+  PlusIcon,
+  PencilSquareIcon
 } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabaseClient';
 import StatusEditable from '../components/StatusEditable';
 import DatePicker from '../components/DatePicker';
 import NewCandidateModal from '../components/NewCandidateModal';
+import EditEmployeeModal from '../components/EditEmployeeModal';
 import dayjs from 'dayjs';
 
 interface HiringRecord {
@@ -46,6 +48,8 @@ const HiringBoard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('New employees – this month');
   const [searchTerm, setSearchTerm] = useState('');
   const [showNewCandidateModal, setShowNewCandidateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<HiringRecord | null>(null);
 
   const { data: records = [], isLoading, error, refetch } = useQuery({
     queryKey: ['hiring', activeTab],
@@ -123,6 +127,17 @@ const HiringBoard: React.FC = () => {
 
   const handleDateUpdate = async (full_name: string, date: string) => {
     return updateMutation.mutateAsync({ full_name, column: 'start_date', value: date });
+  };
+
+  const handleEditEmployee = (employee: HiringRecord) => {
+    setSelectedEmployee(employee);
+    setShowEditModal(true);
+  };
+
+  const handleEditSuccess = () => {
+    refetch();
+    setShowEditModal(false);
+    setSelectedEmployee(null);
   };
 
   if (error) {
@@ -242,7 +257,7 @@ const HiringBoard: React.FC = () => {
           {filteredRecords.map((record, index) => (
             <motion.div
               key={record.full_name}
-              className="rounded-xl px-6 py-5 shadow-sm border transition-all duration-200"
+              className="rounded-xl px-6 py-5 shadow-sm border transition-all duration-200 relative group"
               style={{
                 backgroundColor: theme.background,
                 borderColor: theme.tableBorder
@@ -262,6 +277,28 @@ const HiringBoard: React.FC = () => {
                 e.currentTarget.style.backgroundColor = theme.background;
               }}
             >
+              {/* Edit Button */}
+              <button
+                onClick={() => handleEditEmployee(record)}
+                className="absolute right-2 top-2 p-1.5 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-80 hover:opacity-100 z-10"
+                style={{
+                  backgroundColor: theme.surfaceAlt,
+                  color: theme.textSecondary,
+                  border: `1px solid ${theme.tableBorder}`
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.primaryAccent;
+                  e.currentTarget.style.color = '#FFFFFF';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.surfaceAlt;
+                  e.currentTarget.style.color = theme.textSecondary;
+                }}
+                title="Editar empleado"
+              >
+                <PencilSquareIcon className="h-4 w-4" />
+              </button>
+
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start text-sm mb-4 relative">
                 {/* Name and basic info */}
                 <div className="lg:col-span-3 relative">
@@ -401,6 +438,17 @@ const HiringBoard: React.FC = () => {
           // Show toast notification
           console.log('Empleado creado exitosamente');
         }}
+      />
+      
+      <EditEmployeeModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedEmployee(null);
+        }}
+        employee={selectedEmployee}
+        tableName={TABS[activeTab as keyof typeof TABS]}
+        onSuccess={handleEditSuccess}
       />
     </div>
   );
