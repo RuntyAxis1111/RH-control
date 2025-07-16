@@ -179,12 +179,23 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({
 
     setIsLoading(true);
     try {
+      // Convert empty date strings to null for Supabase compatibility
+      const sanitizeDate = (dateValue: string) => {
+        return dateValue && dateValue.trim() !== '' ? dateValue : null;
+      };
+
       const updateData = {
         ...formData,
-        end_date: formData.start_date ? 
-          dayjs(formData.start_date).add(90, 'days').format('YYYY-MM-DD') : 
-          formData.end_date
+        start_date: sanitizeDate(formData.start_date),
+        end_date: sanitizeDate(formData.end_date),
+        inicio_seguro_viaje: sanitizeDate(formData.inicio_seguro_viaje),
+        due_seguro_viaje_status: sanitizeDate(formData.due_seguro_viaje_status),
       };
+
+      // Auto-calculate end_date if start_date is provided
+      if (updateData.start_date) {
+        updateData.end_date = dayjs(updateData.start_date).add(90, 'days').format('YYYY-MM-DD');
+      }
 
       const { error } = await supabase
         .from(tableName)
