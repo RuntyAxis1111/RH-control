@@ -19,7 +19,7 @@ const Navbar: React.FC = () => {
     { path: '/', label: 'Últimas', icon: NewspaperIcon },
     { path: '/feed/vacaciones', label: 'Vacaciones', icon: CalendarDaysIcon },
     { path: '/feed/viajes', label: 'Viajes', icon: GlobeAltIcon },
-    { path: '/table/it_equipment_requests', label: 'Equipos TI', icon: ComputerDesktopIcon },
+    { path: '/equipos-ti/inventario', label: 'Equipos TI', icon: ComputerDesktopIcon },
     { path: 'https://calculadora.hybelatinamerica.com/', label: 'Calculadora', icon: CalculatorIcon, external: true },
     { path: '/hr/hiring', label: 'Hiring', icon: UserPlusIcon },
   ];

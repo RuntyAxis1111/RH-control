@@ -6,7 +6,7 @@ import Navbar from './components/Navbar';
 import Feed from './pages/Feed';
 import VacationDetails from './pages/VacationDetails';
 import TravelDetails from './pages/TravelDetails';
-import TableView from './pages/TableView';
+import LaptopInventory from './pages/LaptopInventory';
 import HiringBoard from './pages/HiringBoard';
 import Login from './pages/Login';
 
@@ -78,11 +78,11 @@ function App() {
               }
             />
             <Route
-              path="/table/:name"
+              path="/equipos-ti/inventario"
               element={
                 <ProtectedRoute>
                   <AppLayout>
-                    <TableView />
+                    <LaptopInventory />
                   </AppLayout>
                 </ProtectedRoute>
               }
