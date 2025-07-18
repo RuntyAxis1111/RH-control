@@ -8,7 +8,8 @@ import {
   GlobeAltIcon, 
   ComputerDesktopIcon,
   UserPlusIcon,
-  CalculatorIcon
+  CalculatorIcon,
+  ClipboardDocumentListIcon
 } from '@heroicons/react/24/outline';
 
 const Navbar: React.FC = () => {
@@ -17,8 +18,9 @@ const Navbar: React.FC = () => {
 
   const navItems = [
     { path: '/', label: 'Últimas', icon: NewspaperIcon },
-    { path: '/feed/vacaciones', label: 'Vacaciones', icon: CalendarDaysIcon },
     { path: '/feed/viajes', label: 'Viajes', icon: GlobeAltIcon },
+    { path: '/feed/vacaciones', label: 'Vacaciones solicitudes', icon: CalendarDaysIcon },
+    { path: '/vacaciones/registro', label: 'Vacaciones registro', icon: ClipboardDocumentListIcon },
     { path: '/equipos-ti/inventario', label: 'Equipos TI', icon: ComputerDesktopIcon },
     { path: 'https://calculadora.hybelatinamerica.com/', label: 'Calculadora', icon: CalculatorIcon, external: true },
     { path: '/hr/hiring', label: 'Hiring', icon: UserPlusIcon },

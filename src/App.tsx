@@ -5,6 +5,7 @@ import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import Navbar from './components/Navbar';
 import Feed from './pages/Feed';
 import VacationDetails from './pages/VacationDetails';
+import VacationRegistry from './pages/VacationRegistry';
 import TravelDetails from './pages/TravelDetails';
 import LaptopInventory from './pages/LaptopInventory';
 import HiringBoard from './pages/HiringBoard';
@@ -63,6 +64,16 @@ function App() {
                 <ProtectedRoute>
                   <AppLayout>
                     <VacationDetails />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vacaciones/registro"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <VacationRegistry />
                   </AppLayout>
                 </ProtectedRoute>
               }
