@@ -8,20 +8,12 @@ import {
   ChevronUpIcon,
   ChevronDownIcon,
   InformationCircleIcon,
-  EyeIcon
+  EyeIcon,
+  DocumentIcon,
+  ArrowUpTrayIcon
 } from '@heroicons/react/24/outline';
 import dayjs from 'dayjs';
-
-interface Equipo {
-  serial_number: string;
-  model: 'mac_pro' | 'mac_air' | 'lenovo';
-  assigned_to: string | null;
-  insured: boolean;
-  purchase_date: string | null;
-  purchase_cost: number | null;
-  created_at: string;
-  updated_at: string;
-}
+import { Equipo } from '../../lib/supabaseClient';
 
 interface DepreciationDetail {
   year: number;
@@ -39,6 +31,29 @@ const MODEL_LABELS = {
   mac_pro: 'Mac Pro',
   mac_air: 'Mac Air',
   lenovo: 'Lenovo'
+};
+
+const COMPANY_OPTIONS = [
+  { label: 'HBL', value: 'HBL' },
+  { label: 'AJA', value: 'AJA' },
+];
+
+const COMPANY_COLORS = {
+  HBL: '#3B82F6',   // Blue
+  AJA: '#8B5CF6'    // Purple
+};
+
+// Tasas de depreciación y valores residuales por modelo
+const DEPRECIATION_RATES = {
+  mac_air: 0.14,  // 14% anual
+  mac_pro: 0.15,  // 15% anual
+  lenovo: 0.18    // 18% anual
+};
+
+const RESIDUAL_VALUES = {
+  mac_air: 0.30,  // 30% residual
+  mac_pro: 0.25,  // 25% residual
+  lenovo: 0.10    // 10% residual
 };
 
 interface InventoryTableProps {
@@ -67,47 +82,135 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
   const [showNewModal, setShowNewModal] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [showDepreciationModal, setShowDepreciationModal] = useState<string | null>(null);
+  const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
   const [newEquipo, setNewEquipo] = useState({
     serial_number: '',
     model: 'mac_pro' as const,
+    company: 'HBL' as const,
     assigned_to: '',
     insured: false,
     purchase_date: '2024-01-01',
-    purchase_cost: 25000
+    purchase_cost: 25000,
+    depr_rate: 0.15,
+    file_url: null
   });
 
-  // Calculate depreciation
-  const calculateDepreciation = (purchaseDate: string | null, purchaseCost: number | null) => {
+  const showToast = (message: string, type: 'success' | 'error') => {
+    const toastElement = document.createElement('div');
+    toastElement.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-lg text-white font-medium ${
+      type === 'success' ? 'bg-green-500' : 'bg-red-500'
+    }`;
+    toastElement.textContent = message;
+    document.body.appendChild(toastElement);
+    
+    setTimeout(() => {
+      document.body.removeChild(toastElement);
+    }, 3000);
+  };
+
+  const handleFileUpload = async (serialNumber: string, file: File) => {
+    // Validate file
+    if (file.type !== 'application/pdf') {
+      showToast('Solo se permiten archivos PDF', 'error');
+      return;
+    }
+    
+    if (file.size > 20 * 1024 * 1024) { // 20MB
+      showToast('El archivo no puede superar 20MB', 'error');
+      return;
+    }
+    
+    setUploadingFiles(prev => new Set(prev).add(serialNumber));
+    
+    try {
+      const path = `${serialNumber}.pdf`;
+      
+      // Upload file to storage
+      const { error: uploadError } = await supabase.storage
+        .from('facturas')
+        .upload(path, file, { upsert: false });
+      
+      if (uploadError) {
+        if (uploadError.message.includes('already exists')) {
+          // If file exists, update it
+          const { error: updateError } = await supabase.storage
+            .from('facturas')
+            .update(path, file);
+          
+          if (updateError) throw updateError;
+        } else {
+          throw uploadError;
+        }
+      }
+      
+      // Get public URL
+      const { data } = supabase.storage
+        .from('facturas')
+        .getPublicUrl(path);
+      
+      // Update database with file URL
+      await onUpdate(serialNumber, 'file_url', data.publicUrl);
+      
+      showToast('PDF subido exitosamente ✔️', 'success');
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      showToast('Error al subir el archivo', 'error');
+    } finally {
+      setUploadingFiles(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(serialNumber);
+        return newSet;
+      });
+    }
+  };
+
+  const handleFileInputChange = (serialNumber: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleFileUpload(serialNumber, file);
+    }
+    // Reset input value to allow uploading the same file again
+    event.target.value = '';
+  };
+
+  // Calculate depreciation with differentiated rates
+  const calculateDepreciation = (purchaseDate: string | null, purchaseCost: number | null, model: string) => {
     if (!purchaseDate || !purchaseCost || purchaseCost <= 0) {
       return {
         yearlyDepr: 0,
         yearsElapsed: 0,
         bookValue: 0,
+        residualValue: 0,
         depreciationByYear: [0, 0, 0, 0, 0],
         isFullyDepreciated: false
       };
     }
 
-    const yearlyDepr = purchaseCost / 5;
+    const rate = DEPRECIATION_RATES[model as keyof typeof DEPRECIATION_RATES] || 0.20;
+    const residualPct = RESIDUAL_VALUES[model as keyof typeof RESIDUAL_VALUES] || 0.10;
+    
+    const yearlyDepr = purchaseCost * rate;
+    const residualValue = purchaseCost * residualPct;
     const yearsElapsed = Math.min(5, dayjs().diff(dayjs(purchaseDate), 'year', true));
-    const bookValue = Math.max(0, purchaseCost - yearlyDepr * yearsElapsed);
-    const isFullyDepreciated = yearsElapsed >= 5;
+    const bookValue = Math.max(residualValue, purchaseCost - yearlyDepr * yearsElapsed);
+    const isFullyDepreciated = bookValue <= residualValue;
     
     const depreciationByYear = Array.from({ length: 5 }, (_, i) => {
       const year = i + 1;
-      return year <= yearsElapsed ? yearlyDepr : 0;
+      return yearlyDepr; // Misma cifra los 5 años
     });
 
     return {
       yearlyDepr,
       yearsElapsed,
       bookValue,
+      residualValue,
       depreciationByYear,
       isFullyDepreciated
     };
   };
 
-  const getDepreciationDetails = (purchaseDate: string | null, purchaseCost: number | null): DepreciationDetail[] => {
+  const getDepreciationDetails = (purchaseDate: string | null, purchaseCost: number | null, model: string): DepreciationDetail[] => {
     if (!purchaseDate || !purchaseCost || purchaseCost <= 0) {
       return Array.from({ length: 5 }, (_, i) => ({
         year: i + 1,
@@ -116,10 +219,14 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
       }));
     }
 
-    const yearlyDepr = purchaseCost / 5;
+    const rate = DEPRECIATION_RATES[model as keyof typeof DEPRECIATION_RATES] || 0.20;
+    const residualPct = RESIDUAL_VALUES[model as keyof typeof RESIDUAL_VALUES] || 0.10;
+    const yearlyDepr = purchaseCost * rate;
+    const residualValue = purchaseCost * residualPct;
+    
     return Array.from({ length: 5 }, (_, i) => {
       const year = i + 1;
-      const bookValue = Math.max(0, purchaseCost - yearlyDepr * year);
+      const bookValue = Math.max(residualValue, purchaseCost - yearlyDepr * year);
       return {
         year,
         depreciation: yearlyDepr,
@@ -198,28 +305,37 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
 
   const handleCreateEquipo = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEquipo.serial_number.trim() || !newEquipo.model || !newEquipo.purchase_date || newEquipo.purchase_cost <= 0) {
+    if (!newEquipo.serial_number.trim() || !newEquipo.model || !newEquipo.company || !newEquipo.purchase_date || newEquipo.purchase_cost <= 0) {
       alert('Todos los campos son requeridos y el costo debe ser mayor a 0');
       return;
     }
     
+    // Auto-asignar tasa de depreciación según modelo
+    const depr_rate = DEPRECIATION_RATES[newEquipo.model];
+    
     await onCreate({
       serial_number: newEquipo.serial_number.trim(),
       model: newEquipo.model,
+      company: newEquipo.company,
       assigned_to: newEquipo.assigned_to.trim() || null,
       insured: newEquipo.insured,
       purchase_date: newEquipo.purchase_date,
-      purchase_cost: newEquipo.purchase_cost
+      purchase_cost: newEquipo.purchase_cost,
+      depr_rate,
+      file_url: null
     });
     
     setShowNewModal(false);
     setNewEquipo({
       serial_number: '',
       model: 'mac_pro',
+      company: 'HBL',
       assigned_to: '',
       insured: false,
       purchase_date: '2024-01-01',
-      purchase_cost: 25000
+      purchase_cost: 25000,
+      depr_rate: 0.15,
+      file_url: null
     });
   };
 
@@ -254,6 +370,28 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
             }}
           >
             {MODEL_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        );
+      } else if (field === 'company') {
+        return (
+          <select
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onBlur={handleCellSave}
+            onKeyDown={handleKeyDown}
+            autoFocus
+            className="w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2"
+            style={{
+              backgroundColor: theme.background,
+              borderColor: theme.primaryAccent,
+              color: theme.textPrimary
+            }}
+          >
+            {COMPANY_OPTIONS.map(option => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -340,6 +478,15 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
     
     if (field === 'model') {
       displayValue = MODEL_LABELS[value as keyof typeof MODEL_LABELS];
+    } else if (field === 'company') {
+      displayValue = (
+        <span 
+          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white"
+          style={{ backgroundColor: COMPANY_COLORS[value as keyof typeof COMPANY_COLORS] }}
+        >
+          {value}
+        </span>
+      );
     } else if (field === 'insured') {
       displayValue = (
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -465,6 +612,16 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                 <th 
                   className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   style={{ color: theme.textSecondary }}
+                  onClick={() => handleSort('company')}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Empresa</span>
+                    {getSortIcon('company')}
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  style={{ color: theme.textSecondary }}
                   onClick={() => handleSort('assigned_to')}
                 >
                   <div className="flex items-center space-x-1">
@@ -524,14 +681,17 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                   Dep. Año 5
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: theme.textSecondary }}>
+                  Archivo
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: theme.textSecondary }}>
                   Acciones
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y" style={{ borderColor: theme.tableBorder }}>
               {sortedEquipos.map((equipo, index) => {
-                const depreciation = calculateDepreciation(equipo.purchase_date, equipo.purchase_cost);
-                const depreciationDetails = getDepreciationDetails(equipo.purchase_date, equipo.purchase_cost);
+                const depreciation = calculateDepreciation(equipo.purchase_date, equipo.purchase_cost, equipo.model);
+                const depreciationDetails = getDepreciationDetails(equipo.purchase_date, equipo.purchase_cost, equipo.model);
                 const isExpanded = expandedRows.has(equipo.serial_number);
                 
                 return (
@@ -556,17 +716,18 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                       </td>
                       <td>{renderCell(equipo, 'serial_number')}</td>
                       <td>{renderCell(equipo, 'model')}</td>
+                      <td>{renderCell(equipo, 'company')}</td>
                       <td>{renderCell(equipo, 'assigned_to')}</td>
                       <td>{renderCell(equipo, 'purchase_date')}</td>
                       <td>{renderCell(equipo, 'purchase_cost')}</td>
                       <td>{renderCell(equipo, 'insured')}</td>
                       <td className="px-3 py-2 text-sm" style={{ color: theme.textPrimary }}>
                         <div className="flex items-center space-x-2">
-                          <span className={`font-semibold ${depreciation.isFullyDepreciated ? 'text-red-600' : 'text-green-600'}`}>
+                          <span className={`font-semibold ${depreciation.bookValue <= depreciation.residualValue ? 'text-orange-600' : 'text-green-600'}`}>
                             ${depreciation.bookValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </span>
                           {depreciation.yearsElapsed > 0 && (
-                            <span className="text-xs text-gray-500" title={`Valor después de ${depreciation.yearsElapsed.toFixed(1)} años`}>
+                            <span className="text-xs text-gray-500" title={`Valor después de ${depreciation.yearsElapsed.toFixed(1)} años (residual: $${depreciation.residualValue.toLocaleString()})`}>
                               ({depreciation.yearsElapsed.toFixed(1)} años)
                             </span>
                           )}
@@ -584,6 +745,41 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                           )}
                         </td>
                       ))}
+                      {/* File Upload/Download */}
+                      <td className="px-3 py-2 text-sm">
+                        {equipo.file_url ? (
+                          <a
+                            href={equipo.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center p-2 rounded-lg transition-colors hover:bg-gray-100"
+                            title="Abrir PDF"
+                          >
+                            <DocumentIcon className="h-5 w-5" style={{ color: theme.primaryAccent }} />
+                          </a>
+                        ) : (
+                          <div className="relative">
+                            <input
+                              type="file"
+                              accept="application/pdf"
+                              onChange={(e) => handleFileInputChange(equipo.serial_number, e)}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              disabled={uploadingFiles.has(equipo.serial_number)}
+                            />
+                            <button
+                              className="inline-flex items-center p-2 rounded-lg transition-colors hover:bg-gray-100 disabled:opacity-50"
+                              disabled={uploadingFiles.has(equipo.serial_number)}
+                              title="Subir PDF"
+                            >
+                              {uploadingFiles.has(equipo.serial_number) ? (
+                                <div className="w-5 h-5 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+                              ) : (
+                                <ArrowUpTrayIcon className="h-5 w-5" style={{ color: theme.textSecondary }} />
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </td>
                       {/* Actions */}
                       <td className="px-3 py-2 text-sm">
                         <button
@@ -611,14 +807,19 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                               borderColor: theme.tableBorder
                             }}>
                               <div className="p-6">
-                                <h4 className="text-sm font-semibold mb-4" style={{ color: theme.textPrimary }}>
-                                  Depreciación Detallada (5 años, línea recta)
-                                </h4>
+                                <div className="flex justify-between items-center mb-4">
+                                  <h4 className="text-sm font-semibold" style={{ color: theme.textPrimary }}>
+                                    Depreciación Detallada ({DEPRECIATION_RATES[equipo.model] * 100}% anual)
+                                  </h4>
+                                  <div className="text-xs" style={{ color: theme.textSecondary }}>
+                                    Valor residual: ${(equipo.purchase_cost || 0) * RESIDUAL_VALUES[equipo.model]}
+                                  </div>
+                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                                   {Array.from({ length: 5 }, (_, i) => {
                                     const year = i + 1;
                                     const yearDepr = depreciation.depreciationByYear[i];
-                                    const bookValueAtYear = Math.max(0, (equipo.purchase_cost || 0) - (depreciation.yearlyDepr * year));
+                                    const bookValueAtYear = Math.max(depreciation.residualValue, (equipo.purchase_cost || 0) - (depreciation.yearlyDepr * year));
                                     const isCurrentYear = year <= Math.ceil(depreciation.yearsElapsed);
                                     
                                     return (
@@ -637,10 +838,10 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                                     );
                                   })}
                                 </div>
-                                {depreciation.isFullyDepreciated && (
+                                {depreciation.bookValue <= depreciation.residualValue && (
                                   <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                                     <div className="text-sm text-red-800">
-                                      ⚠️ Equipo completamente depreciado (más de 5 años)
+                                      ⚠️ Equipo ha alcanzado su valor residual
                                     </div>
                                   </div>
                                 )}
@@ -738,6 +939,32 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
 
                 <div>
                   <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
+                    Empresa *
+                  </label>
+                  <select
+                    required
+                    value={newEquipo.company}
+                    onChange={(e) => {
+                      const company = e.target.value as 'HBL' | 'AJA';
+                      setNewEquipo(prev => ({ ...prev, company }));
+                    }}
+                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                    style={{ 
+                      backgroundColor: theme.background,
+                      borderColor: theme.tableBorder,
+                      color: theme.textPrimary
+                    }}
+                  >
+                    {COMPANY_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
                     Fecha de Compra *
                   </label>
                   <input
@@ -764,7 +991,10 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                     min="1000"
                     step="0.01"
                     value={newEquipo.purchase_cost}
-                    onChange={(e) => setNewEquipo(prev => ({ ...prev, purchase_cost: parseFloat(e.target.value) || 0 }))}
+                    onChange={(e) => {
+                      const cost = parseFloat(e.target.value) || 0;
+                      setNewEquipo(prev => ({ ...prev, purchase_cost: cost }));
+                    }}
                     className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
                     style={{ 
                       backgroundColor: theme.background,
@@ -810,7 +1040,20 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
-                    onClick={() => setShowNewModal(false)}
+                    onClick={() => {
+                      setShowNewModal(false);
+                      setNewEquipo({
+                        serial_number: '',
+                        model: 'mac_pro',
+                        company: 'HBL',
+                        assigned_to: '',
+                        insured: false,
+                        purchase_date: '2024-01-01',
+                        purchase_cost: 25000,
+                        depr_rate: 0.15,
+                        file_url: null
+                      });
+                    }}
                     className="px-4 py-2 rounded-lg border transition-colors"
                     style={{ 
                       borderColor: theme.tableBorder,
@@ -821,7 +1064,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                   </button>
                   <button
                     type="submit"
-                    disabled={isCreating || !newEquipo.serial_number.trim() || !newEquipo.purchase_date || newEquipo.purchase_cost < 1000}
+                    disabled={isCreating || !newEquipo.serial_number.trim() || !newEquipo.company || !newEquipo.purchase_date || newEquipo.purchase_cost < 1000}
                     className="px-4 py-2 rounded-lg text-white transition-colors disabled:opacity-50"
                     style={{ backgroundColor: theme.primaryAccent }}
                   >
@@ -860,7 +1103,9 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                 const equipo = equipos.find(e => e.serial_number === showDepreciationModal);
                 if (!equipo) return null;
                 
-                const depreciationDetails = getDepreciationDetails(equipo.purchase_date, equipo.purchase_cost);
+                const depreciationDetails = getDepreciationDetails(equipo.purchase_date, equipo.purchase_cost, equipo.model);
+                const rate = DEPRECIATION_RATES[equipo.model];
+                const residualPct = RESIDUAL_VALUES[equipo.model];
                 
                 return (
                   <>
@@ -887,6 +1132,12 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                             </span>
                           </div>
                           <div>
+                            <span style={{ color: theme.textSecondary }}>Empresa:</span>
+                            <span className="ml-2 font-medium" style={{ color: theme.textPrimary }}>
+                              {equipo.company}
+                            </span>
+                          </div>
+                          <div>
                             <span style={{ color: theme.textSecondary }}>Fecha de compra:</span>
                             <span className="ml-2 font-medium" style={{ color: theme.textPrimary }}>
                               {equipo.purchase_date ? dayjs(equipo.purchase_date).format('DD/MM/YYYY') : 'No definida'}
@@ -901,9 +1152,28 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                           <div>
                             <span style={{ color: theme.textSecondary }}>Depreciación anual:</span>
                             <span className="ml-2 font-medium" style={{ color: theme.textPrimary }}>
-                              ${((equipo.purchase_cost || 0) / 5).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                              ${((equipo.purchase_cost || 0) * rate).toLocaleString('en-US', { minimumFractionDigits: 2 })} ({(rate * 100).toFixed(0)}%)
                             </span>
                           </div>
+                          <div>
+                            <span style={{ color: theme.textSecondary }}>Valor residual:</span>
+                            <span className="ml-2 font-medium" style={{ color: theme.textPrimary }}>
+                              ${((equipo.purchase_cost || 0) * residualPct).toLocaleString('en-US', { minimumFractionDigits: 2 })} ({(residualPct * 100).toFixed(0)}%)
+                            </span>
+                          </div>
+                          {equipo.file_url && (
+                            <div>
+                              <span style={{ color: theme.textSecondary }}>Archivo:</span>
+                              <a
+                                href={equipo.file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-2 text-blue-600 hover:text-blue-800 underline"
+                              >
+                                Ver PDF
+                              </a>
+                            </div>
+                          )}
                         </div>
                       </div>
 

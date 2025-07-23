@@ -3,20 +3,9 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useTheme } from '../contexts/ThemeContext';
 import { ComputerDesktopIcon } from '@heroicons/react/24/outline';
-import { supabase } from '../lib/supabaseClient';
+import { supabase, Equipo } from '../lib/supabaseClient';
 import InventoryTable from '../components/equipos/InventoryTable';
 import ChartsDashboard from '../components/equipos/ChartsDashboard';
-
-interface Equipo {
-  serial_number: string;
-  model: 'mac_pro' | 'mac_air' | 'lenovo';
-  assigned_to: string | null;
-  insured: boolean;
-  purchase_date: string | null;
-  purchase_cost: number | null;
-  created_at: string;
-  updated_at: string;
-}
 
 const LaptopInventory: React.FC = () => {
   const queryClient = useQueryClient();

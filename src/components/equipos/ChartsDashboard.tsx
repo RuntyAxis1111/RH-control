@@ -54,9 +54,10 @@ const MODEL_LABELS = {
 const ChartsDashboard: React.FC = () => {
   const theme = useTheme();
   const [dateRange, setDateRange] = useState<'12m' | '24m' | 'all'>('all');
+  const [companyFilter, setCompanyFilter] = useState<'all' | 'HBL' | 'AJA'>('all');
 
   const { data: chartData = [], isLoading, error } = useQuery({
-    queryKey: ['equipos_charts', dateRange],
+    queryKey: ['equipos_charts', dateRange, companyFilter],
     queryFn: async (): Promise<MonthlyData[]> => {
       let dateFilter = '';
       
@@ -66,8 +67,13 @@ const ChartsDashboard: React.FC = () => {
         dateFilter = `and purchase_date >= '${dayjs().subtract(24, 'months').format('YYYY-MM-DD')}'`;
       }
 
+      let companyFilterClause = '';
+      if (companyFilter !== 'all') {
+        companyFilterClause = `and company = '${companyFilter}'`;
+      }
+
       const { data, error } = await supabase.rpc('get_monthly_equipment_stats', {
-        date_filter: dateFilter
+        date_filter: dateFilter + ' ' + companyFilterClause
       });
 
       if (error) {
@@ -82,6 +88,10 @@ const ChartsDashboard: React.FC = () => {
           query.gte('purchase_date', dayjs().subtract(12, 'months').format('YYYY-MM-DD'));
         } else if (dateRange === '24m') {
           query.gte('purchase_date', dayjs().subtract(24, 'months').format('YYYY-MM-DD'));
+        }
+        
+        if (companyFilter !== 'all') {
+          query.eq('company', companyFilter);
         }
 
         const { data: rawData, error: queryError } = await query.order('purchase_date');
@@ -119,12 +129,17 @@ const ChartsDashboard: React.FC = () => {
   });
 
   const { data: modelData = [], isLoading: isLoadingModels } = useQuery({
-    queryKey: ['equipos_by_model'],
+    queryKey: ['equipos_by_model', companyFilter],
     queryFn: async (): Promise<ModelData[]> => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('equipos_ti')
-        .select('model')
-        .order('model');
+        .select('model');
+        
+      if (companyFilter !== 'all') {
+        query = query.eq('company', companyFilter);
+      }
+      
+      const { data, error } = await query.order('model');
       
       if (error) throw error;
 
@@ -150,7 +165,7 @@ const ChartsDashboard: React.FC = () => {
       // Get all equipment data for full inventory export
       const { data: equipos, error } = await supabase
         .from('equipos_ti')
-        .select('serial_number, model, assigned_to, insured, purchase_date, purchase_cost')
+        .select('serial_number, model, company, assigned_to, insured, purchase_date, purchase_cost, file_url')
         .order('serial_number');
       
       if (error) throw error;
@@ -158,14 +173,16 @@ const ChartsDashboard: React.FC = () => {
 
       // Create CSV content with proper headers and data formatting
       const csvContent = [
-        ['serial_number', 'model', 'assigned_to', 'insured', 'purchase_date', 'purchase_cost'],
+        ['serial_number', 'model', 'company', 'assigned_to', 'insured', 'purchase_date', 'purchase_cost', 'file_url'],
         ...equipos.map(item => [
           item.serial_number || '',
           MODEL_LABELS[item.model as keyof typeof MODEL_LABELS] || item.model,
+          item.company || '',
           item.assigned_to || '',
           item.insured ? 'true' : 'false',
           item.purchase_date || '',
-          item.purchase_cost?.toString() || ''
+          item.purchase_cost?.toString() || '',
+          item.file_url || ''
         ])
       ].map(row => row.join(',')).join('\n');
 
@@ -232,6 +249,25 @@ const ChartsDashboard: React.FC = () => {
               <option value="all">Todo el período</option>
               <option value="12m">Últimos 12 meses</option>
               <option value="24m">Últimos 24 meses</option>
+            </select>
+          </div>
+
+          {/* Company Filter */}
+          <div className="flex items-center space-x-2">
+            <ComputerDesktopIcon className="h-5 w-5" style={{ color: theme.textSecondary }} />
+            <select
+              value={companyFilter}
+              onChange={(e) => setCompanyFilter(e.target.value as any)}
+              className="px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+              style={{
+                backgroundColor: theme.background,
+                borderColor: theme.tableBorder,
+                color: theme.textPrimary
+              }}
+            >
+              <option value="all">Todas las empresas</option>
+              <option value="HBL">HBL</option>
+              <option value="AJA">AJA</option>
             </select>
           </div>
 

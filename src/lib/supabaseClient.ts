@@ -5,6 +5,20 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+export interface Equipo {
+  serial_number: string;
+  model: 'mac_pro' | 'mac_air' | 'lenovo';
+  company: 'HBL' | 'AJA';
+  assigned_to: string | null;
+  insured: boolean;
+  purchase_date: string | null;
+  purchase_cost: number | null;
+  depr_rate: number | null;
+  created_at: string;
+  updated_at: string;
+  file_url: string | null;
+}
+
 export interface VacationRequest {
   id: string;
   created_at: string;
