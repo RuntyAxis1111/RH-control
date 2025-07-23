@@ -7,7 +7,7 @@ import Feed from './pages/Feed';
 import VacationDetails from './pages/VacationDetails';
 import VacationRegistry from './pages/VacationRegistry';
 import TravelDetails from './pages/TravelDetails';
-import LaptopInventory from './pages/LaptopInventory';
+import Noticias from './pages/Noticias';
 import HiringBoard from './pages/HiringBoard';
 import Login from './pages/Login';
 
@@ -89,11 +89,11 @@ function App() {
               }
             />
             <Route
-              path="/equipos-ti/inventario"
+              path="/noticias"
               element={
                 <ProtectedRoute>
                   <AppLayout>
-                    <LaptopInventory />
+                    <Noticias />
                   </AppLayout>
                 </ProtectedRoute>
               }
