@@ -12,6 +12,7 @@ import {
   ChevronUpIcon,
   ChevronDownIcon
 } from '@heroicons/react/24/outline';
+import { TrashIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabaseClient';
 import dayjs from 'dayjs';
 
@@ -43,6 +44,8 @@ const VacationRegistry: React.FC = () => {
   const [editingCell, setEditingCell] = useState<{ id: string; field: keyof VacationRecord } | null>(null);
   const [editValue, setEditValue] = useState('');
   const [showNewModal, setShowNewModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState<VacationRecord | null>(null);
   const [newRecord, setNewRecord] = useState({
     employee_name: '',
     imss_enrolled: '',
@@ -139,6 +142,28 @@ const VacationRegistry: React.FC = () => {
     }
   });
 
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('vacaciones_registro')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vacaciones_registro'] });
+      setShowDeleteModal(false);
+      setEmployeeToDelete(null);
+      showToast('Empleado dado de baja ✔️', 'success');
+    },
+    onError: (error: any) => {
+      console.error('Error deleting record:', error);
+      showToast('Error al dar de baja empleado', 'error');
+    }
+  });
+
   const showToast = (message: string, type: 'success' | 'error') => {
     console.log(`${type.toUpperCase()}: ${message}`);
   };
@@ -223,6 +248,16 @@ const VacationRegistry: React.FC = () => {
     if (!newRecord.employee_name.trim()) return;
     
     await createMutation.mutateAsync(newRecord);
+  };
+
+  const handleDeleteEmployee = (employee: VacationRecord) => {
+    setEmployeeToDelete(employee);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!employeeToDelete) return;
+    await deleteMutation.mutateAsync(employeeToDelete.id);
   };
 
   const renderAuthChip = (value: string) => {
@@ -409,14 +444,36 @@ const VacationRegistry: React.FC = () => {
             </div>
           </div>
           
-          <button
-            onClick={() => setShowNewModal(true)}
-            className="flex items-center space-x-2 px-4 py-2 rounded-lg text-white font-medium transition-colors hover:opacity-90"
-            style={{ backgroundColor: theme.primaryAccent }}
-          >
-            <PlusIcon className="h-4 w-4" />
-            <span>Nuevo empleado</span>
-          </button>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              <p style={{ color: theme.textSecondary }}>{sortedRecords.length} empleados registrados</p>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => setShowNewModal(true)}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-lg text-white font-medium transition-colors hover:opacity-90"
+                  style={{ backgroundColor: theme.success }}
+                >
+                  <PlusIcon className="h-4 w-4" />
+                  <span>Alta empleado</span>
+                </button>
+                <button
+                  onClick={() => {
+                    if (sortedRecords.length === 0) {
+                      showToast('No hay empleados para dar de baja', 'error');
+                      return;
+                    }
+                    // For now, we'll show a simple selection modal
+                    setShowDeleteModal(true);
+                  }}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-lg text-white font-medium transition-colors hover:opacity-90"
+                  style={{ backgroundColor: theme.danger }}
+                >
+                  <TrashIcon className="h-4 w-4" />
+                  <span>Baja empleado</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Search */}
@@ -530,6 +587,12 @@ const VacationRegistry: React.FC = () => {
                   >
                     Periodos tomados
                   </th>
+                  <th 
+                    className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: theme.textSecondary }}
+                  >
+                    Acciones
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y" style={{ borderColor: theme.tableBorder }}>
@@ -548,6 +611,16 @@ const VacationRegistry: React.FC = () => {
                     <td>{renderCell(record, 'auth_rh')}</td>
                     <td>{renderCell(record, 'auth_manager')}</td>
                     <td>{renderCell(record, 'periods_taken')}</td>
+                    <td className="px-3 py-2">
+                      <button
+                        onClick={() => handleDeleteEmployee(record)}
+                        className="p-2 rounded-lg text-white transition-colors hover:opacity-80"
+                        style={{ backgroundColor: theme.danger }}
+                        title="Dar de baja empleado"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </td>
                   </motion.tr>
                 ))}
               </tbody>
@@ -685,6 +758,132 @@ const VacationRegistry: React.FC = () => {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Employee Modal */}
+      <AnimatePresence>
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              className="fixed inset-0 bg-black/50"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setShowDeleteModal(false);
+                setEmployeeToDelete(null);
+              }}
+            />
+            
+            <motion.div
+              className="relative w-full max-w-md rounded-lg shadow-xl"
+              style={{ 
+                backgroundColor: theme.background,
+                border: `1px solid ${theme.tableBorder}`
+              }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+            >
+              <div className="flex items-center justify-between p-6 border-b" style={{ borderColor: theme.tableBorder }}>
+                <h2 className="text-xl font-semibold" style={{ color: theme.textPrimary }}>
+                  {employeeToDelete ? 'Confirmar Baja' : 'Seleccionar Empleado'}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setEmployeeToDelete(null);
+                  }}
+                  className="p-2 rounded-lg transition-colors"
+                  style={{ color: theme.textSecondary }}
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="p-6">
+                {employeeToDelete ? (
+                  // Confirmation step
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-3 p-4 rounded-lg" style={{ backgroundColor: `${theme.danger}10` }}>
+                      <TrashIcon className="h-6 w-6" style={{ color: theme.danger }} />
+                      <div>
+                        <p className="font-semibold" style={{ color: theme.textPrimary }}>
+                          ¿Estás seguro?
+                        </p>
+                        <p className="text-sm" style={{ color: theme.textSecondary }}>
+                          Se dará de baja a: <strong>{employeeToDelete.employee_name}</strong>
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <p className="text-sm text-yellow-800">
+                        ⚠️ Esta acción no se puede deshacer. El empleado será eliminado permanentemente del registro.
+                      </p>
+                    </div>
+
+                    <div className="flex justify-end space-x-3 pt-4">
+                      <button
+                        onClick={() => {
+                          setShowDeleteModal(false);
+                          setEmployeeToDelete(null);
+                        }}
+                        className="px-4 py-2 rounded-lg border transition-colors"
+                        style={{ 
+                          borderColor: theme.tableBorder,
+                          color: theme.textSecondary
+                        }}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={confirmDelete}
+                        disabled={deleteMutation.isPending}
+                        className="px-4 py-2 rounded-lg text-white transition-colors disabled:opacity-50"
+                        style={{ backgroundColor: theme.danger }}
+                      >
+                        {deleteMutation.isPending ? 'Eliminando...' : 'Confirmar Baja'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  // Employee selection step
+                  <div className="space-y-4">
+                    <p className="text-sm" style={{ color: theme.textSecondary }}>
+                      Selecciona el empleado que deseas dar de baja:
+                    </p>
+                    
+                    <div className="max-h-64 overflow-y-auto space-y-2">
+                      {sortedRecords.map((record) => (
+                        <button
+                          key={record.id}
+                          onClick={() => setEmployeeToDelete(record)}
+                          className="w-full text-left p-3 rounded-lg border transition-colors hover:bg-gray-50"
+                          style={{ 
+                            borderColor: theme.tableBorder,
+                            color: theme.textPrimary
+                          }}
+                        >
+                          <div className="font-medium">{record.employee_name}</div>
+                          <div className="text-sm" style={{ color: theme.textSecondary }}>
+                            {record.vacations_remaining} días disponibles
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    
+                    {sortedRecords.length === 0 && (
+                      <div className="text-center py-8" style={{ color: theme.textSecondary }}>
+                        No hay empleados registrados
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </motion.div>
           </div>
         )}
