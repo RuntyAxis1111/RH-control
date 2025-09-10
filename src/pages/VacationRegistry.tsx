@@ -20,8 +20,9 @@ interface VacationRecord {
   id: string;
   employee_name: string;
   imss_enrolled: string | null;
-  contract_signed: string | null;
   vacations_remaining: number;
+  vacaciones_por_contrato: number;
+  vacaciones_disponibles: number;
   auth_rh: 'pending' | 'approved' | 'rejected';
   auth_manager: 'pending' | 'approved' | 'rejected';
   periods_taken: string[] | null;
@@ -49,8 +50,9 @@ const VacationRegistry: React.FC = () => {
   const [newRecord, setNewRecord] = useState({
     employee_name: '',
     imss_enrolled: '',
-    contract_signed: '',
     vacations_remaining: 15,
+    vacaciones_por_contrato: 15,
+    vacaciones_disponibles: 15,
     auth_rh: 'pending' as const,
     auth_manager: 'pending' as const,
     periods_taken: [] as string[]
@@ -128,8 +130,9 @@ const VacationRegistry: React.FC = () => {
       setNewRecord({
         employee_name: '',
         imss_enrolled: '',
-        contract_signed: '',
         vacations_remaining: 15,
+        vacaciones_por_contrato: 15,
+        vacaciones_disponibles: 15,
         auth_rh: 'pending',
         auth_manager: 'pending',
         periods_taken: []
@@ -318,7 +321,7 @@ const VacationRegistry: React.FC = () => {
             }}
           />
         );
-      } else if (field === 'vacations_remaining') {
+      } else if (field === 'vacations_remaining' || field === 'vacaciones_por_contrato' || field === 'vacaciones_disponibles') {
         return (
           <input
             type="number"
@@ -361,7 +364,7 @@ const VacationRegistry: React.FC = () => {
     
     if (field === 'auth_rh' || field === 'auth_manager') {
       displayValue = renderAuthChip(value as string);
-    } else if (field === 'imss_enrolled' || field === 'contract_signed') {
+    } else if (field === 'imss_enrolled') {
       displayValue = value ? dayjs(value as string).format('DD/MM/YYYY') : '-';
     } else if (field === 'periods_taken') {
       const periods = Array.isArray(value) ? value : [];
@@ -377,7 +380,7 @@ const VacationRegistry: React.FC = () => {
           ))}
         </div>
       ) : '-';
-    } else if (field === 'vacations_remaining') {
+    } else if (field === 'vacations_remaining' || field === 'vacaciones_por_contrato' || field === 'vacaciones_disponibles') {
       displayValue = (
         <div className="flex items-center space-x-2">
           <span className="font-semibold">{value}</span>
@@ -387,7 +390,7 @@ const VacationRegistry: React.FC = () => {
     }
 
     const isClickable = !['id', 'created_at', 'updated_at'].includes(field);
-    const needsDoubleClick = field === 'vacations_remaining';
+    const needsDoubleClick = field === 'vacations_remaining' || field === 'vacaciones_por_contrato' || field === 'vacaciones_disponibles';
     
     return (
       <div
@@ -447,33 +450,42 @@ const VacationRegistry: React.FC = () => {
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-3">
               <p style={{ color: theme.textSecondary }}>{sortedRecords.length} empleados registrados</p>
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => setShowNewModal(true)}
-                  className="flex items-center space-x-2 px-4 py-2 rounded-lg text-white font-medium transition-colors hover:opacity-90"
-                  style={{ backgroundColor: theme.success }}
-                >
-                  <PlusIcon className="h-4 w-4" />
-                  <span>Alta empleado</span>
-                </button>
-                <button
-                  onClick={() => {
-                    if (sortedRecords.length === 0) {
-                      showToast('No hay empleados para dar de baja', 'error');
-                      return;
-                    }
-                    // For now, we'll show a simple selection modal
-                    setShowDeleteModal(true);
-                  }}
-                  className="flex items-center space-x-2 px-4 py-2 rounded-lg text-white font-medium transition-colors hover:opacity-90"
-                  style={{ backgroundColor: theme.danger }}
-                >
-                  <TrashIcon className="h-4 w-4" />
-                  <span>Baja empleado</span>
-                </button>
-              </div>
+              <button
+                onClick={() => setShowNewModal(true)}
+                className="flex items-center space-x-2 px-4 py-2 rounded-lg text-white font-medium transition-colors hover:opacity-90"
+                style={{ backgroundColor: theme.success }}
+              >
+                <PlusIcon className="h-4 w-4" />
+                <span>Alta empleado</span>
+              </button>
+              <button
+                onClick={() => {
+                  if (sortedRecords.length === 0) {
+                    showToast('No hay empleados para dar de baja', 'error');
+                    return;
+                  }
+                  setShowDeleteModal(true);
+                }}
+                className="flex items-center space-x-2 px-4 py-2 rounded-lg text-white font-medium transition-colors hover:opacity-90"
+                style={{ backgroundColor: theme.danger }}
+              >
+                <TrashIcon className="h-4 w-4" />
+                <span>Baja empleado</span>
+              </button>
             </div>
           </div>
+        </div>
+
+        {/* Políticas de Vacaciones Link */}
+        <div className="mb-4">
+          <a 
+            href="https://drive.google.com/file/d/1example-vacation-policies/view"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 transition-colors duration-200 font-medium underline"
+          >
+            📋 Políticas de Vacaciones
+          </a>
         </div>
 
         {/* Search */}
@@ -544,21 +556,21 @@ const VacationRegistry: React.FC = () => {
                   <th 
                     className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                     style={{ color: theme.textSecondary }}
-                    onClick={() => handleSort('contract_signed')}
+                    onClick={() => handleSort('vacaciones_por_contrato')}
                   >
                     <div className="flex items-center space-x-1">
-                      <span>Firma contrato</span>
-                      {getSortIcon('contract_signed')}
+                      <span>Vacaciones por contrato</span>
+                      {getSortIcon('vacaciones_por_contrato')}
                     </div>
                   </th>
                   <th 
                     className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                     style={{ color: theme.textSecondary }}
-                    onClick={() => handleSort('vacations_remaining')}
+                    onClick={() => handleSort('vacaciones_disponibles')}
                   >
                     <div className="flex items-center space-x-1">
-                      <span>Vacaciones disp.</span>
-                      {getSortIcon('vacations_remaining')}
+                      <span>Vacaciones disponibles</span>
+                      {getSortIcon('vacaciones_disponibles')}
                     </div>
                   </th>
                   <th 
@@ -606,8 +618,8 @@ const VacationRegistry: React.FC = () => {
                   >
                     <td>{renderCell(record, 'employee_name')}</td>
                     <td>{renderCell(record, 'imss_enrolled')}</td>
-                    <td>{renderCell(record, 'contract_signed')}</td>
-                    <td>{renderCell(record, 'vacations_remaining')}</td>
+                    <td>{renderCell(record, 'vacaciones_por_contrato')}</td>
+                    <td>{renderCell(record, 'vacaciones_disponibles')}</td>
                     <td>{renderCell(record, 'auth_rh')}</td>
                     <td>{renderCell(record, 'auth_manager')}</td>
                     <td>{renderCell(record, 'periods_taken')}</td>
@@ -703,37 +715,47 @@ const VacationRegistry: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
-                    Firma de Contrato
-                  </label>
-                  <input
-                    type="date"
-                    value={newRecord.contract_signed}
-                    onChange={(e) => setNewRecord(prev => ({ ...prev, contract_signed: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
-                    style={{ 
-                      backgroundColor: theme.background,
-                      borderColor: theme.tableBorder,
-                      color: theme.textPrimary
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
-                    Días de Vacaciones Disponibles
+                    Vacaciones por Contrato
                   </label>
                   <input
                     type="number"
                     min="0"
-                    value={newRecord.vacations_remaining}
-                    onChange={(e) => setNewRecord(prev => ({ ...prev, vacations_remaining: parseInt(e.target.value) || 0 }))}
+                    max="30"
+                    value={newRecord.vacaciones_por_contrato}
+                    onChange={(e) => setNewRecord(prev => ({ ...prev, vacaciones_por_contrato: parseInt(e.target.value) || 15 }))}
                     className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
                     style={{ 
                       backgroundColor: theme.background,
                       borderColor: theme.tableBorder,
                       color: theme.textPrimary
                     }}
+                    placeholder="15"
                   />
+                  <p className="text-xs mt-1" style={{ color: theme.textSecondary }}>
+                    Días totales según contrato (12, 15 o 20)
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: theme.textPrimary }}>
+                    Vacaciones Disponibles
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={newRecord.vacaciones_disponibles}
+                    onChange={(e) => setNewRecord(prev => ({ ...prev, vacaciones_disponibles: parseInt(e.target.value) || 15 }))}
+                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                    style={{ 
+                      backgroundColor: theme.background,
+                      borderColor: theme.tableBorder,
+                      color: theme.textPrimary
+                    }}
+                    placeholder="15"
+                  />
+                  <p className="text-xs mt-1" style={{ color: theme.textSecondary }}>
+                    Días disponibles actualmente
+                  </p>
                 </div>
 
                 <div className="flex justify-end space-x-3 pt-4">
