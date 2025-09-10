@@ -7,7 +7,6 @@ import Feed from './pages/Feed';
 import VacationDetails from './pages/VacationDetails';
 import VacationRegistry from './pages/VacationRegistry';
 import TravelDetails from './pages/TravelDetails';
-import Noticias from './pages/Noticias';
 import HiringBoard from './pages/HiringBoard';
 import Login from './pages/Login';
 
@@ -84,16 +83,6 @@ function App() {
                 <ProtectedRoute>
                   <AppLayout>
                     <TravelDetails />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/noticias"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Noticias />
                   </AppLayout>
                 </ProtectedRoute>
               }
