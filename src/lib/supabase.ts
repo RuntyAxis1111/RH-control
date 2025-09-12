@@ -25,6 +25,10 @@ export type Database = {
           manager_email: string;
           comments: string | null;
           inserted_by: string | null;
+          step1_auth_manager: string;
+          step2_auth_rh: string;
+          step3_contract_signature: string;
+          step4_congratulations_email: string;
         };
         Insert: {
           id?: string;
@@ -37,6 +41,10 @@ export type Database = {
           manager_email: string;
           comments?: string | null;
           inserted_by?: string | null;
+          step1_auth_manager?: string;
+          step2_auth_rh?: string;
+          step3_contract_signature?: string;
+          step4_congratulations_email?: string;
         };
         Update: {
           id?: string;
@@ -49,6 +57,10 @@ export type Database = {
           manager_email?: string;
           comments?: string | null;
           inserted_by?: string | null;
+          step1_auth_manager?: string;
+          step2_auth_rh?: string;
+          step3_contract_signature?: string;
+          step4_congratulations_email?: string;
         };
       };
       travel_notifications: {
