@@ -165,7 +165,45 @@ const VacationDetails: React.FC = () => {
     {
       key: 'workflow_progress' as keyof VacationRequest,
       label: 'Progreso del Workflow',
-      render: (value: any, row: VacationRequest) => <WorkflowProgress request={row} />
+      render: (value: any, row: VacationRequest) => {
+        const steps = [
+          { value: row.step1_auth_manager || 'pendiente', label: 'Manager' },
+          { value: row.step2_auth_rh || 'pendiente', label: 'RH' },
+          { value: row.step3_contract_signature || 'pendiente', label: 'Contrato' },
+          { value: row.step4_congratulations_email || 'pendiente', label: 'Email' }
+        ];
+        
+        const completedSteps = steps.filter(s => 
+          s.value === 'aprobado' || s.value === 'recibido' || s.value === 'listo'
+        ).length;
+        
+        const isComplete = completedSteps === 4;
+        const progressPercent = (completedSteps / 4) * 100;
+        
+        return (
+          <div className="w-32">
+            <div className="flex items-center space-x-1 mb-1">
+              <div className="flex-1 bg-gray-200 rounded-full h-2">
+                <div 
+                  className="h-2 rounded-full transition-all duration-300"
+                  style={{ 
+                    backgroundColor: isComplete ? '#00C875' : '#0073EA',
+                    width: `${progressPercent}%`
+                  }}
+                />
+              </div>
+              <span className="text-xs font-medium" style={{ color: theme.textSecondary }}>
+                {completedSteps}/4
+              </span>
+            </div>
+            {isComplete && (
+              <div className="text-xs font-medium text-center text-green-600">
+                ✅ Completo
+              </div>
+            )}
+          </div>
+        );
+      }
     }
   ];
 
