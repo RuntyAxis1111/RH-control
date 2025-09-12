@@ -234,7 +234,7 @@ function DetailedDataTable<T extends { id: string; [key: string]: any }>({
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                               {Object.entries(row).map(([key, value]) => {
-                                if (key === 'id' || key.startsWith('step')) return null;
+                                if (key === 'id' || key.startsWith('step') || key === 'status_while_away') return null;
                                 
                                 let displayValue = String(value || '-');
                                 let displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
