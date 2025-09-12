@@ -175,32 +175,54 @@ const VacationDetails: React.FC = () => {
         
         const completedSteps = steps.filter(s => 
           s.value === 'aprobado' || s.value === 'recibido' || s.value === 'listo'
-        ).length;
+        );
         
-        const isComplete = completedSteps === 4;
-        const progressPercent = (completedSteps / 4) * 100;
+        const hasRejection = steps.some(s => s.value === 'rechazado');
+        const totalProgress = steps.reduce((sum, step) => {
+          switch (step.value) {
+            case 'aprobado':
+            case 'recibido':
+            case 'listo':
+              return sum + 1;
+            case 'enviado':
+              return sum + 0.5;
+            default:
+              return sum;
+          }
+        }, 0);
+        
+        const isComplete = completedSteps.length === 4;
+        const progressPercent = (totalProgress / 4) * 100;
         
         return (
-          <div className="w-32">
-            <div className="flex items-center space-x-1 mb-1">
-              <div className="flex-1 bg-gray-200 rounded-full h-2">
+          <div className="w-36">
+            <div className="flex items-center space-x-2 mb-2">
+              <div className="flex-1 bg-gray-200 rounded-full h-3 overflow-hidden">
                 <div 
-                  className="h-2 rounded-full transition-all duration-300"
+                  className="h-3 rounded-full transition-all duration-500 ease-out"
                   style={{ 
-                    backgroundColor: isComplete ? '#00C875' : '#0073EA',
+                    backgroundColor: hasRejection ? '#E2445C' : isComplete ? '#00C875' : '#0073EA',
                     width: `${progressPercent}%`
                   }}
                 />
               </div>
-              <span className="text-xs font-medium" style={{ color: theme.textSecondary }}>
-                {completedSteps}/4
+              <span className="text-xs font-bold" style={{ 
+                color: hasRejection ? '#E2445C' : isComplete ? '#00C875' : theme.textSecondary 
+              }}>
+                {Math.round(progressPercent)}%
               </span>
             </div>
-            {isComplete && (
-              <div className="text-xs font-medium text-center text-green-600">
-                ✅ Completo
+            <div className="text-center">
+              <div className={`text-xs font-bold ${
+                hasRejection ? 'text-red-600' : 
+                isComplete ? 'text-green-600' : 
+                'text-blue-600'
+              }`}>
+                {hasRejection ? '❌ Rechazado' : 
+                 isComplete ? '✅ Completo' : 
+                 `🔄 ${completedSteps.length}/4`}
               </div>
-            )}
+            </div>
           </div>
         );
       }
