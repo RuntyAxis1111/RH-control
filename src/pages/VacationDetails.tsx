@@ -159,6 +159,7 @@ const VacationDetails: React.FC = () => {
       key: 'end_date' as keyof VacationRequest, 
       label: 'Fin',
       render: (value: string) => dayjs(value).format('DD/MM/YYYY')
+    },
     { key: 'manager_email' as keyof VacationRequest, label: 'Manager' },
     {
       key: 'workflow_progress' as keyof VacationRequest,
