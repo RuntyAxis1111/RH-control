@@ -86,9 +86,9 @@ const WorkflowStepEditor: React.FC<WorkflowStepEditorProps> = ({
       case 'aprobado':
       case 'recibido':
       case 'listo':
-        return 1; // Completado
+        return 25; // 25% por cada paso completado
       case 'enviado':
-        return 0.5; // Parcialmente completado
+        return 12.5; // 12.5% por paso parcialmente completado
       case 'rechazado':
         return 0; // Rechazado cuenta como 0
       default:
@@ -97,7 +97,7 @@ const WorkflowStepEditor: React.FC<WorkflowStepEditorProps> = ({
   };
 
   const totalProgress = steps.reduce((sum, step) => sum + getStepProgress(step.value), 0);
-  const progressPercent = (totalProgress / steps.length) * 100;
+  const progressPercent = Math.min(totalProgress, 100); // Máximo 100%
   
   // Determinar si hay algún rechazo
   const hasRejection = steps.some(step => step.value === 'rechazado');
@@ -187,10 +187,13 @@ const WorkflowStepEditor: React.FC<WorkflowStepEditorProps> = ({
                 ...getStepColor(step.value),
                 focusRingColor: theme.primaryAccent,
                 boxShadow: step.value === 'aprobado' || step.value === 'recibido' || step.value === 'listo' 
-                  ? '0 0 0 3px rgba(0, 200, 117, 0.2)' 
+                  ? '0 0 0 4px rgba(0, 200, 117, 0.3)' 
                   : step.value === 'rechazado' 
-                  ? '0 0 0 3px rgba(226, 68, 92, 0.2)' 
-                  : 'none'
+                  ? '0 0 0 4px rgba(226, 68, 92, 0.3)' 
+                  : 'none',
+                transform: step.value === 'aprobado' || step.value === 'recibido' || step.value === 'listo' || step.value === 'rechazado'
+                  ? 'scale(1.05)' 
+                  : 'scale(1)'
               }}
             >
               {step.options.map(option => (
@@ -215,9 +218,9 @@ const WorkflowStepEditor: React.FC<WorkflowStepEditorProps> = ({
           <span>Progreso del workflow</span>
           <span>{Math.round(progressPercent)}%</span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+        <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
           <motion.div
-            className="h-3 rounded-full transition-all duration-700 ease-out"
+            className="h-4 rounded-full transition-all duration-700 ease-out"
             style={{ 
               backgroundColor: hasRejection ? '#E2445C' : isWorkflowComplete ? '#00C875' : '#0073EA',
               width: `${progressPercent}%`
