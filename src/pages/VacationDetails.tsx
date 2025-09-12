@@ -160,7 +160,6 @@ const VacationDetails: React.FC = () => {
       label: 'Fin',
       render: (value: string) => dayjs(value).format('DD/MM/YYYY')
     },
-    { key: 'status_while_away' as keyof VacationRequest, label: 'Status mientras fuera' },
     { key: 'manager_email' as keyof VacationRequest, label: 'Manager' },
     {
       key: 'workflow_progress' as keyof VacationRequest,
@@ -195,7 +194,7 @@ const VacationDetails: React.FC = () => {
         const progressPercent = (totalProgress / 4) * 100;
         
         return (
-          <div className="w-36">
+          <div className="min-w-[140px]">
             <div className="flex items-center space-x-2 mb-2">
               <div className="flex-1 bg-gray-200 rounded-full h-3 overflow-hidden">
                 <div 
