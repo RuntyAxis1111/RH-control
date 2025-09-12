@@ -18,10 +18,10 @@ interface VacationRequest {
   manager_email: string;
   comments: string;
   review_status: 'unreviewed' | 'in_progress' | 'done';
-  step1_auth_manager: 'pendiente' | 'aprobado' | 'rechazado';
-  step2_auth_rh: 'pendiente' | 'aprobado' | 'rechazado';
-  step3_contract_signature: 'pendiente' | 'enviado' | 'recibido';
-  step4_congratulations_email: 'pendiente' | 'listo';
+  step1_auth_manager?: 'pendiente' | 'aprobado' | 'rechazado' | null;
+  step2_auth_rh?: 'pendiente' | 'aprobado' | 'rechazado' | null;
+  step3_contract_signature?: 'pendiente' | 'enviado' | 'recibido' | null;
+  step4_congratulations_email?: 'pendiente' | 'listo' | null;
 }
 
 // Componente para mostrar el progreso del workflow
@@ -32,25 +32,25 @@ const WorkflowProgress: React.FC<{ request: VacationRequest }> = ({ request }) =
     { 
       key: 'step1_auth_manager', 
       label: 'Paso 1: AUT MANAGER', 
-      value: request.step1_auth_manager,
+      value: request.step1_auth_manager || 'pendiente',
       options: ['pendiente', 'aprobado', 'rechazado']
     },
     { 
       key: 'step2_auth_rh', 
       label: 'Paso 2: AUT RH', 
-      value: request.step2_auth_rh,
+      value: request.step2_auth_rh || 'pendiente',
       options: ['pendiente', 'aprobado', 'rechazado']
     },
     { 
       key: 'step3_contract_signature', 
       label: 'Paso 3: Firma de contrato', 
-      value: request.step3_contract_signature,
+      value: request.step3_contract_signature || 'pendiente',
       options: ['pendiente', 'enviado', 'recibido']
     },
     { 
       key: 'step4_congratulations_email', 
       label: 'Paso 4: Email Felicitaciones', 
-      value: request.step4_congratulations_email,
+      value: request.step4_congratulations_email || 'pendiente',
       options: ['pendiente', 'listo']
     }
   ];
@@ -71,10 +71,10 @@ const WorkflowProgress: React.FC<{ request: VacationRequest }> = ({ request }) =
   };
 
   const isWorkflowComplete = 
-    request.step1_auth_manager === 'aprobado' &&
-    request.step2_auth_rh === 'aprobado' &&
-    request.step3_contract_signature === 'recibido' &&
-    request.step4_congratulations_email === 'listo';
+    (request.step1_auth_manager || 'pendiente') === 'aprobado' &&
+    (request.step2_auth_rh || 'pendiente') === 'aprobado' &&
+    (request.step3_contract_signature || 'pendiente') === 'recibido' &&
+    (request.step4_congratulations_email || 'pendiente') === 'listo';
 
   return (
     <div className={`p-4 rounded-lg border-2 ${isWorkflowComplete ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
