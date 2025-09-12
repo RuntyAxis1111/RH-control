@@ -18,8 +18,94 @@ interface VacationRequest {
   manager_email: string;
   comments: string;
   review_status: 'unreviewed' | 'in_progress' | 'done';
+  step1_auth_manager: 'pendiente' | 'aprobado' | 'rechazado';
+  step2_auth_rh: 'pendiente' | 'aprobado' | 'rechazado';
+  step3_contract_signature: 'pendiente' | 'enviado' | 'recibido';
+  step4_congratulations_email: 'pendiente' | 'listo';
 }
 
+// Componente para mostrar el progreso del workflow
+const WorkflowProgress: React.FC<{ request: VacationRequest }> = ({ request }) => {
+  const theme = useTheme();
+  
+  const steps = [
+    { 
+      key: 'step1_auth_manager', 
+      label: 'Paso 1: AUT MANAGER', 
+      value: request.step1_auth_manager,
+      options: ['pendiente', 'aprobado', 'rechazado']
+    },
+    { 
+      key: 'step2_auth_rh', 
+      label: 'Paso 2: AUT RH', 
+      value: request.step2_auth_rh,
+      options: ['pendiente', 'aprobado', 'rechazado']
+    },
+    { 
+      key: 'step3_contract_signature', 
+      label: 'Paso 3: Firma de contrato', 
+      value: request.step3_contract_signature,
+      options: ['pendiente', 'enviado', 'recibido']
+    },
+    { 
+      key: 'step4_congratulations_email', 
+      label: 'Paso 4: Email Felicitaciones', 
+      value: request.step4_congratulations_email,
+      options: ['pendiente', 'listo']
+    }
+  ];
+
+  const getStepColor = (value: string) => {
+    switch (value) {
+      case 'aprobado':
+      case 'recibido':
+      case 'listo':
+        return { backgroundColor: theme.success, color: '#FFFFFF' };
+      case 'rechazado':
+        return { backgroundColor: theme.danger, color: '#FFFFFF' };
+      case 'enviado':
+        return { backgroundColor: theme.warning, color: '#000000' };
+      default:
+        return { backgroundColor: theme.grey, color: '#000000' };
+    }
+  };
+
+  const isWorkflowComplete = 
+    request.step1_auth_manager === 'aprobado' &&
+    request.step2_auth_rh === 'aprobado' &&
+    request.step3_contract_signature === 'recibido' &&
+    request.step4_congratulations_email === 'listo';
+
+  return (
+    <div className={`p-4 rounded-lg border-2 ${isWorkflowComplete ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        {steps.map((step, index) => (
+          <div key={step.key} className="text-center">
+            <div className="text-xs font-medium mb-2" style={{ color: theme.textSecondary }}>
+              {step.label}
+            </div>
+            <div 
+              className="px-3 py-2 rounded-full text-xs font-medium border"
+              style={{
+                ...getStepColor(step.value),
+                borderColor: getStepColor(step.value).backgroundColor
+              }}
+            >
+              {step.value.charAt(0).toUpperCase() + step.value.slice(1)}
+            </div>
+          </div>
+        ))}
+      </div>
+      {isWorkflowComplete && (
+        <div className="mt-3 text-center">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-500 text-white">
+            ✅ Workflow Completado
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
 const VacationDetails: React.FC = () => {
   const queryClient = useQueryClient();
   const theme = useTheme();
@@ -29,7 +115,13 @@ const VacationDetails: React.FC = () => {
     queryFn: async (): Promise<VacationRequest[]> => {
       const { data, error } = await supabase
         .from('vacation_requests')
-        .select('*')
+        .select(`
+          *,
+          step1_auth_manager,
+          step2_auth_rh,
+          step3_contract_signature,
+          step4_congratulations_email
+        `)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -76,6 +168,11 @@ const VacationDetails: React.FC = () => {
     },
     { key: 'status_while_away' as keyof VacationRequest, label: 'Status mientras fuera' },
     { key: 'manager_email' as keyof VacationRequest, label: 'Manager' },
+    {
+      key: 'workflow_progress' as keyof VacationRequest,
+      label: 'Progreso del Workflow',
+      render: (value: any, row: VacationRequest) => <WorkflowProgress request={row} />
+    }
   ];
 
   if (error) {

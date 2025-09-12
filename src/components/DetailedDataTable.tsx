@@ -11,6 +11,7 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 import ReviewChip from './ReviewChip';
+import WorkflowStepEditor from './WorkflowStepEditor';
 
 type Column<T> = { 
   key: keyof T; 
@@ -52,7 +53,7 @@ function DetailedDataTable<T extends { id: string; [key: string]: any }>({
   // Enhanced columns with review status
   const enhancedColumns = [
     ...columns,
-    {
+    ...(tableName === 'vacation_requests' ? [] : [{
       key: 'review_status' as keyof T,
       label: 'Estado',
       render: (value: any, row: T) => (
@@ -63,7 +64,7 @@ function DetailedDataTable<T extends { id: string; [key: string]: any }>({
           onUpdate={onUpdate}
         />
       )
-    }
+    }])
   ];
 
   const handleRowClick = (rowId: string) => {
@@ -212,9 +213,28 @@ function DetailedDataTable<T extends { id: string; [key: string]: any }>({
                               </button>
                             </div>
                             
+                            {/* Workflow Steps Editor for vacation requests */}
+                            {tableName === 'vacation_requests' && (
+                              <div className="mb-6">
+                                <h4 className="text-md font-semibold mb-3" style={{ color: theme.textPrimary }}>
+                                  Editor de Workflow
+                                </h4>
+                                <WorkflowStepEditor 
+                                  requestId={row.id}
+                                  currentSteps={{
+                                    step1_auth_manager: row.step1_auth_manager,
+                                    step2_auth_rh: row.step2_auth_rh,
+                                    step3_contract_signature: row.step3_contract_signature,
+                                    step4_congratulations_email: row.step4_congratulations_email
+                                  }}
+                                  onUpdate={onUpdate}
+                                />
+                              </div>
+                            )}
+
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                               {Object.entries(row).map(([key, value]) => {
-                                if (key === 'id') return null;
+                                if (key === 'id' || key.startsWith('step')) return null;
                                 
                                 let displayValue = String(value || '-');
                                 let displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
