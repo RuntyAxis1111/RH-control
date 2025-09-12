@@ -115,13 +115,7 @@ const VacationDetails: React.FC = () => {
     queryFn: async (): Promise<VacationRequest[]> => {
       const { data, error } = await supabase
         .from('vacation_requests')
-        .select(`
-          *,
-          step1_auth_manager,
-          step2_auth_rh,
-          step3_contract_signature,
-          step4_congratulations_email
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
